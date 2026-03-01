@@ -10,6 +10,8 @@ jobs:
   api:
     name: API (Python)
     runs-on: ubuntu-latest
+    env:
+      PRODUCT_TIER: ${{ github.repository == 'brunoclz/world-transparency-graph' && 'community' || 'advanced' }}
     defaults:
       run:
         working-directory: api
