@@ -1,8 +1,31 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from .base import PreparationContext, PreparationResult
+
+_EXTERNAL_FAILURE_PATTERN = re.compile(
+    r"HTTP\s*[45]\d{2}"
+    r"|403\s+Forbidden"
+    r"|404\s+Not\s+Found"
+    r"|500\s+Internal\s+Server\s+Error"
+    r"|\b502\b|\b503\b"
+    r"|Name\s+or\s+service\s+not\s+known"
+    r"|\bDNS\b"
+    r"|\bNXDOMAIN\b"
+    r"|resolve\s+host"
+    r"|Connection\s+timed\s+out"
+    r"|timed\s+out"
+    r"|\btimeout\b"
+    r"|Connection\s+reset"
+    r"|Connection\s+refused"
+    r"|\b429\b"
+    r"|Too\s+Many\s+Requests"
+    r"|rate\s+limit"
+    r"|Could\s+not\s+resolve\s+CNPJ\s+release",
+    re.IGNORECASE,
+)
 
 
 def _expand_inputs(repo_root: str, patterns: list[str]) -> list[Path]:
@@ -43,7 +66,14 @@ def prepare_source(source: dict, context: PreparationContext) -> PreparationResu
         for shell_cmd in download_commands:
             completed = context.run_in_etl_shell(shell_cmd)
             if completed.returncode != 0:
-                tail = (completed.stderr or "").strip()[-2000:]
+                combined_output = ((completed.stderr or "") + (completed.stdout or "")).strip()
+                tail = combined_output[-2000:]
+                if _EXTERNAL_FAILURE_PATTERN.search(combined_output):
+                    return PreparationResult(
+                        status="blocked_external",
+                        error=tail or f"download command failed for {pipeline_id}",
+                        blocked_reason=f"external failure detected in download output for {pipeline_id}",
+                    )
                 return PreparationResult(
                     status="failed_download",
                     error=tail or f"download command failed for {pipeline_id}",
