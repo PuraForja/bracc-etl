@@ -142,7 +142,7 @@ class TSEPipeline(Pipeline):
         self.donations = donations
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver)
 
         # Split candidates: CPF-keyed (dedup by CPF) vs sq_candidato-only
         cpf_candidates = [c for c in self.candidates if c.get("cpf")]
@@ -166,7 +166,7 @@ class TSEPipeline(Pipeline):
         # Map sq_candidato to Person node via Cypher SET for CANDIDATO_EM linking
         sq_cpf_rows = [{"sq": sq, "cpf": cpf} for sq, cpf in sq_to_cpf.items()]
         if sq_cpf_rows:
-            loader.run_query_with_retry(
+            loader.run_query(
                 "UNWIND $rows AS row "
                 "MATCH (p:Person {cpf: row.cpf}) "
                 "SET p.sq_candidato = row.sq",
@@ -182,7 +182,7 @@ class TSEPipeline(Pipeline):
             ["year", "cargo", "uf", "municipio"],
         )
         if election_nodes:
-            loader.run_query_with_retry(
+            loader.run_query(
                 "UNWIND $rows AS row "
                 "MERGE (e:Election {year: row.year, cargo: row.cargo, "
                 "uf: row.uf, municipio: row.municipio})",
@@ -208,7 +208,7 @@ class TSEPipeline(Pipeline):
             candidato_rels.append(rel)
 
         if candidato_rels:
-            loader.run_query_with_retry(
+            loader.run_query(
                 "UNWIND $rows AS row "
                 "OPTIONAL MATCH (p1:Person {cpf: row.cpf}) WHERE row.cpf <> '' "
                 "OPTIONAL MATCH (p2:Person {sq_candidato: row.sq}) WHERE row.sq <> '' "
@@ -253,7 +253,7 @@ class TSEPipeline(Pipeline):
                 "year": d["year"],
             })
         if person_donation_rels:
-            loader.run_query_with_retry(
+            loader.run_query(
                 "UNWIND $rows AS row "
                 "MATCH (d:Person {cpf: row.source_key}) "
                 "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "
@@ -280,7 +280,7 @@ class TSEPipeline(Pipeline):
                 "year": d["year"],
             })
         if company_donation_rels:
-            loader.run_query_with_retry(
+            loader.run_query(
                 "UNWIND $rows AS row "
                 "MATCH (d:Company {cnpj: row.source_key}) "
                 "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "

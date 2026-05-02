@@ -165,7 +165,7 @@ class CvmFundsPipeline(Pipeline):
         )
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         if self.funds:
             loaded = loader.load_nodes("Fund", self.funds, key_field="fund_cnpj")

@@ -110,7 +110,7 @@ class HoldingsPipeline(Pipeline):
         )
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         if self.holding_rels:
             query = (

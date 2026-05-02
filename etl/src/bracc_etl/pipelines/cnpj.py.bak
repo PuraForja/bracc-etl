@@ -934,7 +934,7 @@ class CNPJPipeline(Pipeline):
                 "    r.temporal_status = row.temporal_status, "
                 "    r.temporal_rule = row.temporal_rule"
             )
-            loader.run_query_with_retry(query, label_rows)
+            loader.run_query(query, label_rows)
 
     def _rebuild_latest_projection_from_snapshots(self) -> None:
         """Rebuild factual SOCIO_DE from latest snapshot per source/target pair."""

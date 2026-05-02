@@ -182,7 +182,7 @@ class TransparenciaPipeline(Pipeline):
         self.amendments = deduplicate_rows(amendments, ["amendment_id"])
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver)
 
         if self.contracts:
             loader.load_nodes(
@@ -227,7 +227,7 @@ class TransparenciaPipeline(Pipeline):
                 "SET po.cpf_partial = row.cpf_partial, po.name = row.name, "
                 "po.org = row.org, po.salary = row.salary"
             )
-            loader.run_query_with_retry(po_query, self.offices)
+            loader.run_query(po_query, self.offices)
 
             # Person nodes — keyed on servidor_id (hash of cpf_partial+name)
             # DO NOT set cpf — would conflict with uniqueness constraint
@@ -248,7 +248,7 @@ class TransparenciaPipeline(Pipeline):
                 "SET p.cpf_partial = row.cpf_partial, p.name = row.name, "
                 "p.source = 'portal_transparencia'"
             )
-            loader.run_query_with_retry(person_query, persons)
+            loader.run_query(person_query, persons)
 
             # RECEBEU_SALARIO: Person -> PublicOffice
             rel_query = (
@@ -257,7 +257,7 @@ class TransparenciaPipeline(Pipeline):
                 "MATCH (po:PublicOffice {office_id: row.office_id}) "
                 "MERGE (p)-[:RECEBEU_SALARIO]->(po)"
             )
-            loader.run_query_with_retry(
+            loader.run_query(
                 rel_query,
                 [
                     {"servidor_id": o["servidor_id"], "office_id": o["office_id"]}

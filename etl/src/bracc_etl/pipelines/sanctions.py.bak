@@ -118,7 +118,7 @@ class SanctionsPipeline(Pipeline):
         self.sanctioned_entities = all_entities
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver)
 
         if self.sanctions:
             loader.load_nodes("Sanction", self.sanctions, key_field="sanction_id")
@@ -149,4 +149,4 @@ class SanctionsPipeline(Pipeline):
                 "WHERE entity IS NOT NULL "
                 "MERGE (entity)-[:SANCIONADA]->(s)"
             )
-            loader.run_query_with_retry(query, rel_rows)
+            loader.run_query(query, rel_rows)

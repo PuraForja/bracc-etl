@@ -128,7 +128,7 @@ class OfacPipeline(Pipeline):
         )
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         if self.sanctions:
             loaded = loader.load_nodes(

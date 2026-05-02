@@ -298,7 +298,7 @@ class TcuPipeline(Pipeline):
                 "MATCH (s:Sanction {sanction_id: row.target_key}) "
                 "MERGE (p)-[:SANCIONADA]->(s)"
             )
-            loader.run_query_with_retry(query_person, person_rels)
+            loader.run_query(query_person, person_rels)
             logger.info("[tcu] Created %d Person-SANCIONADA->Sanction rels", len(person_rels))
 
         # Merge Company nodes and create relationships
@@ -323,5 +323,5 @@ class TcuPipeline(Pipeline):
                 "MATCH (s:Sanction {sanction_id: row.target_key}) "
                 "MERGE (c)-[:SANCIONADA]->(s)"
             )
-            loader.run_query_with_retry(query_company, company_rels)
+            loader.run_query(query_company, company_rels)
             logger.info("[tcu] Created %d Company-SANCIONADA->Sanction rels", len(company_rels))

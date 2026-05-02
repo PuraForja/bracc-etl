@@ -195,7 +195,7 @@ class CpgfPipeline(Pipeline):
             logger.warning("No expenses to load")
             return
 
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         # Load GovCardExpense nodes
         count = loader.load_nodes(

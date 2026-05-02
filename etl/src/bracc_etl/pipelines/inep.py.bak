@@ -155,7 +155,7 @@ class InepPipeline(Pipeline):
                 "MERGE (c:Company {cnpj: row.source_key}) "
                 "MERGE (c)-[:MANTEDORA_DE]->(e)"
             )
-            loader.run_query_with_retry(query, self.school_company_links)
+            loader.run_query(query, self.school_company_links)
             logger.info(
                 "[inep] Created %d MANTEDORA_DE relationships",
                 len(self.school_company_links),

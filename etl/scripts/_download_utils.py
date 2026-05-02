@@ -19,7 +19,7 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
     partial = dest.with_suffix(dest.suffix + ".partial")
     start_byte = partial.stat().st_size if partial.exists() else 0
 
-    headers = {}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
     if start_byte > 0:
         headers["Range"] = f"bytes={start_byte}-"
         logger.info("Resuming %s from %.1f MB", dest.name, start_byte / 1e6)

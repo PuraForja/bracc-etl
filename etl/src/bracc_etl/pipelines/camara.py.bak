@@ -223,7 +223,7 @@ class CamaraPipeline(Pipeline):
             logger.warning("No expenses to load")
             return
 
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver)
 
         # Load Expense nodes (include deputy_id for linkage)
         expense_nodes = [
@@ -253,7 +253,7 @@ class CamaraPipeline(Pipeline):
                 "MERGE (p:Person {deputy_id: row.deputy_id}) "
                 "SET p.name = row.name, p.uf = row.uf, p.partido = row.partido"
             )
-            count = loader.run_query_with_retry(query, self.deputies_by_id)
+            count = loader.run_query(query, self.deputies_by_id)
             logger.info("Merged %d deputy Person nodes (deputy_id)", count)
 
         # Load/merge Company nodes for CNPJ suppliers
@@ -288,7 +288,7 @@ class CamaraPipeline(Pipeline):
                 "MATCH (e:Expense {expense_id: row.target_key}) "
                 "MERGE (p)-[:GASTOU]->(e)"
             )
-            count = loader.run_query_with_retry(query, self.gastou_by_deputy_id_rels)
+            count = loader.run_query(query, self.gastou_by_deputy_id_rels)
             logger.info("Created %d GASTOU relationships (deputy_id)", count)
 
         # FORNECEU: Company/Person -> Expense
@@ -302,5 +302,5 @@ class CamaraPipeline(Pipeline):
                 "WHERE supplier IS NOT NULL "
                 "MERGE (supplier)-[:FORNECEU]->(e)"
             )
-            count = loader.run_query_with_retry(query, self.forneceu_rels)
+            count = loader.run_query(query, self.forneceu_rels)
             logger.info("Created %d FORNECEU relationships", count)

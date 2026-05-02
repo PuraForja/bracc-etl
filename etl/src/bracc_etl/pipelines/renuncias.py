@@ -145,7 +145,7 @@ class RenunciasPipeline(Pipeline):
         )
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         if self.waivers:
             loader.load_nodes("TaxWaiver", self.waivers, key_field="waiver_id")

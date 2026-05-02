@@ -227,6 +227,22 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
         except httpx.HTTPError:
             pass
 
+    # --- Mirror Casa dos Dados (adicionada 2026) ---
+    casadosdados_base = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/2026-04-12/"
+    try:
+        resp = httpx.head(casadosdados_base, follow_redirects=True, timeout=30)
+        if resp.status_code < 400:
+            return casadosdados_base
+    except httpx.HTTPError:
+        pass
+    # --- Nova URL dados.gov.br (adicionada 2026) ---
+    dados_gov_base = "https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj"
+    try:
+        resp = httpx.head(dados_gov_base, follow_redirects=True, timeout=30)
+        if resp.status_code < 400:
+            return dados_gov_base
+    except httpx.HTTPError:
+        pass
     # --- Legacy dadosabertos (fallback) ---
     new_base = "https://dadosabertos.rfb.gov.br/CNPJ/dados_abertos_cnpj/{ym}/"
     legacy_url = "https://dadosabertos.rfb.gov.br/CNPJ/"

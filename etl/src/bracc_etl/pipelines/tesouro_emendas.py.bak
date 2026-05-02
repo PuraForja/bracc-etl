@@ -180,4 +180,4 @@ class TesouroEmendasPipeline(Pipeline):
                 "MATCH (c:Company {cnpj: row.target_key}) "
                 "MERGE (p)-[:PAGO_PARA]->(c)"
             )
-            loader.run_query_with_retry(query, self.transfer_rels)
+            loader.run_query(query, self.transfer_rels)

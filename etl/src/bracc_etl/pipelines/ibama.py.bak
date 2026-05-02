@@ -189,6 +189,6 @@ class IbamaPipeline(Pipeline):
                 "WHERE entity IS NOT NULL "
                 "MERGE (entity)-[:EMBARGADA]->(e)"
             )
-            loader.run_query_with_retry(query, self.embargo_rels)
+            loader.run_query(query, self.embargo_rels)
 
         logger.info("[ibama] Load complete.")

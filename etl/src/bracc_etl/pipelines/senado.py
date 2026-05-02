@@ -249,7 +249,7 @@ class SenadoPipeline(Pipeline):
             logger.warning("No expenses to load")
             return
 
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         # Load Expense nodes
         expense_nodes = [
@@ -300,7 +300,7 @@ class SenadoPipeline(Pipeline):
                 "MATCH (p:Person {name: row.senator_name}) "
                 "MERGE (p)-[:GASTOU]->(e)"
             )
-            count = loader.run_query(query, self.gastou_by_name_rels)
+            count = loader.run_query_with_retry(query, self.gastou_by_name_rels)
             logger.info("Created %d GASTOU relationships (name)", count)
 
         # FORNECEU: Company/Person -> Expense
@@ -314,5 +314,5 @@ class SenadoPipeline(Pipeline):
                 "WHERE supplier IS NOT NULL "
                 "MERGE (supplier)-[:FORNECEU]->(e)"
             )
-            count = loader.run_query(query, self.forneceu_rels)
+            count = loader.run_query_with_retry(query, self.forneceu_rels)
             logger.info("Created %d FORNECEU relationships", count)

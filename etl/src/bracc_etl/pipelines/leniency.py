@@ -92,7 +92,7 @@ class LeniencyPipeline(Pipeline):
         self.company_rels = company_rels
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
 
         if self.agreements:
             loader.load_nodes(
