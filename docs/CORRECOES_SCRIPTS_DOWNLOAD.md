@@ -269,3 +269,5 @@ https://apigwext.worldbank.org/dvsvc/v1.0/json/APPLICATION/ADOBE_PDF_19_03_FINAL
 
 *Atualizado em 30/04/2026*
 *Próxima sessão de correções: quando downloads e importações terminarem*
+
+- [03/05/2026] CEPIM: Sucesso! Script regrediu 4 dias e encontrou o arquivo de 29/04. Download concluído.
