@@ -249,7 +249,7 @@ class SenadoPipeline(Pipeline):
             logger.warning("No expenses to load")
             return
 
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
 
         # Load Expense nodes
         expense_nodes = [

@@ -182,7 +182,7 @@ class TransparenciaPipeline(Pipeline):
         self.amendments = deduplicate_rows(amendments, ["amendment_id"])
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
 
         if self.contracts:
             loader.load_nodes(

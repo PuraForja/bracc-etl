@@ -142,7 +142,7 @@ class TSEPipeline(Pipeline):
         self.donations = donations
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
 
         # Split candidates: CPF-keyed (dedup by CPF) vs sq_candidato-only
         cpf_candidates = [c for c in self.candidates if c.get("cpf")]

@@ -216,7 +216,7 @@ class SiopPipeline(Pipeline):
         self.author_rels = author_rels
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
 
         # 1. Amendment nodes
         if self.amendments:

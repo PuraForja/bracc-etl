@@ -183,7 +183,7 @@ class OpenSanctionsPipeline(Pipeline):
         )
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver, batch_size=1_000)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
 
         if self.global_peps:
             loaded = loader.load_nodes("GlobalPEP", self.global_peps, key_field="pep_id")
