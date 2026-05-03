@@ -153,3 +153,9 @@ grep -r "loader\.run_query(" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines
 
 *Criado em 01/05/2026*
 *Atualizar este arquivo a cada alteração de código*
+
+## STATUS DA FILA — 02/05/2026 ~23:55
+
+- **Fila em andamento:** camara (monitorando load) → transparencia → siop → opensanctions → tse
+- **Status:** batch_size=500 aplicado e commitado. Aguardando confirmação via Expense count > 430k.
+- **Próximo Check:** Verificar integridade do Neo4j após conclusão da Câmara.
