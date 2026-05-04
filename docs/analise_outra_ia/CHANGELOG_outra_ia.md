@@ -1,0 +1,48 @@
+
+## [03/05/2026] - Refatoração: Centralização de Downloads
+- **Decisão Técnica**: Remover lógicas de download redundantes dos scripts individuais[cite: 1, 2].
+- **Ação**: Atualizar todos os scripts `download_*.py` para utilizarem exclusivamente as funções nativas de `_download_utils.py`[cite: 2, 8].
+- **Objetivo**: Garantir segurança (ZIP bombs), suporte a retomada de download e validação padronizada de CSVs em um único local[cite: 2, 7].
+- **Scripts Pendentes**:
+  - download_bcb.py*
+  - download_caged.py*
+  - download_camara.py*
+  - download_camara_inquiries.py*
+  - download_ceaf.py*
+  - download_cepim.py
+  - download_cnpj.py*
+  - download_cnpj_bq.py*
+  - download_cpgf.py*
+  - download_cvm.py*
+  - download_cvm_funds.py*
+  - download_datajud.py*
+  - download_dou.py*
+  - download_eu_sanctions.py*
+  - download_holdings.py*
+  - download_icij.py*
+  - download_leniency.py*
+  - download_mides.py*
+  - download_ofac.py*
+  - download_opensanctions.py*
+  - download_pep.py
+  - download_pep_cgu.py*
+  - download_pncp.py*
+  - download_querido_diario.py*
+  - download_renuncias.py*
+  - download_sanctions.py*
+  - download_senado.py*
+  - download_senado_cpi_archive.py*
+  - download_senado_cpis.py*
+  - download_senado_parlamentares.py*
+  - download_siconfi.py*
+  - download_siop.py*
+  - download_stf.py*
+  - download_tesouro_emendas.py
+  - download_transparencia.py*
+  - download_tse.py*
+  - download_tse_bens.py*
+  - download_tse_filiados.py*
+  - download_un_sanctions.py*
+  - download_viagens.py*
+  - download_world_bank.py*
+
