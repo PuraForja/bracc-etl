@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import click
@@ -175,7 +175,7 @@ def _process_csv(csv_path: Path, output_path: Path) -> bool:
 @click.command()
 @click.option(
     "--date",
-    default=lambda: datetime.now().strftime("%Y%m%d"),
+    default=lambda: (datetime.now() - timedelta(days=1)).strftime("%Y%m%d"),
     help="Date for download URL (YYYYMMDD). Defaults to today.",
 )
 @click.option("--output-dir", default="./data/pep_cgu", help="Output directory")
