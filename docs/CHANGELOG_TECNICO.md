@@ -214,3 +214,8 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Arquivos:** download_cepim.py linha 63, download_pep_cgu.py linha 127
 **Também:** docker-compose.yml heap 1G->16g, pagecache 512m->4g, transacao 1G->4G
 **Testado:** nao
+
+## 2026-05-04 — TESTES DE URLs
+**BCB Olinda:** https://olinda.bcb.gov.br/olinda/servico/Gepad_QuadroPenalidades/versao/v1/odata/QuadroGeralProcessoAdministrativoSancionador — FUNCIONANDO 200 OK
+**Transparencia servidores:** dadosabertos-download.cgu.gov.br/saida/servidores/YYYYMM.zip — 403 PERSISTENTE mesmo com Referer
+**World Bank:** apigwext.worldbank.org URL — 404 MORTA
