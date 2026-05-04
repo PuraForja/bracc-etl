@@ -60,7 +60,7 @@ def _download_dataset(
     if skip_existing and zip_path.exists():
         logger.info("Skipping (exists): %s", zip_name)
     else:
-        if not download_file(url, zip_path, timeout=timeout):
+        if not download_file(url, zip_path, timeout=timeout, referer=f"{BASE_URL}/cepim"):
             return None
 
     # Extract

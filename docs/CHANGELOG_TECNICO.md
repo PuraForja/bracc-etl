@@ -207,3 +207,10 @@ cd ~/Downloads/br-acc-novo && git status --short
 - Salvar versão anterior antes de restaurar — `docs/analise_outra_ia/`
 
 *Atualizado em 03/05/2026 ~23h55*
+
+## 2026-05-04 — CORREÇÃO: referer no download_file
+**Problema:** download_file chamado sem referer — 403 no dadosabertos-download.cgu.gov.br
+**Solução:** referer=f"{BASE_URL}/cepim" e referer=f"{BASE_URL}/pep" adicionados
+**Arquivos:** download_cepim.py linha 63, download_pep_cgu.py linha 127
+**Também:** docker-compose.yml heap 1G->16g, pagecache 512m->4g, transacao 1G->4G
+**Testado:** nao
