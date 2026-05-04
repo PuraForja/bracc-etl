@@ -19,7 +19,7 @@ import pandas as pd
 
 # Allow imports from scripts/ directory
 sys.path.insert(0, str(Path(__file__).parent))
-from _download_utils import download_file, extract_zip, validate_csv
+from _download_utils import download_file, extract_zip, validate_csv, find_latest_date
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ def _process_csv(csv_path: Path, output_path: Path) -> bool:
 @click.command()
 @click.option(
     "--date",
-    default=lambda: (datetime.now() - timedelta(days=1)).strftime("%Y%m%d"),
+    default=lambda: find_latest_date("https://dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/cepim", "{date}_CEPIM.zip", "https://portaldatransparencia.gov.br/download-de-dados/cepim") or (datetime.now() - timedelta(days=1)).strftime("%Y%m%d"),
     help="Date for download URL (YYYYMM). Defaults to current month.",
 )
 @click.option("--output-dir", default="./data/cepim", help="Output directory")

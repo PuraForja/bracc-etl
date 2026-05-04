@@ -143,3 +143,46 @@ def validate_csv(
     except Exception as e:
         logger.warning("Validation failed for %s: %s", path.name, e)
         return False
+
+
+def find_latest_date(
+    base_url: str,
+    filename_pattern: str,
+    referer: str,
+    *,
+    max_days: int = 7,
+) -> str | None:
+    """Tenta datas de hoje para trás até achar arquivo disponível.
+
+    Args:
+        base_url: URL base do arquivo sem data. Ex: 'https://dadosabertos.../cepim'
+        filename_pattern: padrão do nome com {date}. Ex: '{date}_CEPIM.zip'
+        referer: URL do portal para o header Referer
+        max_days: quantos dias para trás tentar (padrão 7)
+
+    Returns:
+        String da data no formato YYYYMMDD ou None se não encontrar.
+    """
+    import urllib.request
+    from datetime import date, timedelta
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": referer,
+    }
+    d = date.today()
+    for _ in range(max_days):
+        date_str = d.strftime("%Y%m%d")
+        url = f"{base_url}/{filename_pattern.format(date=date_str)}"
+        req = urllib.request.Request(url, headers=headers, method="HEAD")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                if r.status == 200:
+                    logger.info("Data mais recente encontrada: %s (%s)", date_str, url)
+                    return date_str
+        except Exception:
+            pass
+        logger.debug("Data %s não disponível, tentando anterior...", date_str)
+        d -= timedelta(days=1)
+    logger.warning("Nenhuma data disponível nos últimos %d dias", max_days)
+    return None
