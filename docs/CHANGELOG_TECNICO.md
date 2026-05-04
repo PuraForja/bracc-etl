@@ -153,27 +153,3 @@ grep -r "loader\.run_query(" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines
 
 *Criado em 01/05/2026*
 *Atualizar este arquivo a cada alteração de código*
-
-## STATUS DA FILA — 02/05/2026 ~23:55
-
-- **Fila em andamento:** camara (monitorando load) → transparencia → siop → opensanctions → tse
-- **Status:** batch_size=500 aplicado e commitado. Aguardando confirmação via Expense count > 430k.
-- **Próximo Check:** Verificar integridade do Neo4j após conclusão da Câmara.
-
----
-
-## 2026-05-03 — ANÁLISE DE ARQUITETURA: O FIM DA MORTE SILENCIOSA
-
-### [03/05/2026] — Diagnóstico de Performance Neo4j vs. Hardware — master-fix
-
-**Problema Identificado (O Gargalo Real):**
-As falhas recentes (especialmente no pipeline da Câmara e Siconfi) não eram causadas apenas pelo tamanho do lote (`batch_size`), mas sim por uma **disputa crítica de recursos**. Com 32GB de RAM, dedicar ~26GB ao Neo4j deixava apenas 6GB para o Windows, Git Bash e o motor Python do ETL. Isso causava o encerramento do processo pelo SO (OOM Killer) sem gerar logs de erro. Além disso, a falta de `CONSTRAINTS` forçava o Neo4j a ler todos os nós de Company (40M+) em cada operação de MERGE, tornando o load impraticável.
-
-**A Solução Proposta (A Visão Geral):**
-1. **Redimensionamento de Memória:** Ajustar o Neo4j para 20GB (8GB Heap / 12GB Page Cache), liberando 12GB para o sistema e scripts Python.
-2. **Implementação de Constraints Únicas:** Criar restrições físicas nos IDs (CNPJ, CPF, ID) para garantir que o Neo4j encontre o registro em milissegundos, eliminando o Full Scan.
-3. **Ordem de Operação Segura:** - Ação A: Alterar Memória no Docker-compose.
-   - Ação B: Criar Constraints via Cypher-shell.
-   - Ação C: Executar fila com batch_size=1.000 (voltando à velocidade normal).
-
-**Impacto:** Espera-se que a importação da Câmara (3.35M registros) passe de 'impossível/travada' para 'concluída em poucas horas'.
