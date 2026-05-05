@@ -219,3 +219,13 @@ cd ~/Downloads/br-acc-novo && git status --short
 **BCB Olinda:** https://olinda.bcb.gov.br/olinda/servico/Gepad_QuadroPenalidades/versao/v1/odata/QuadroGeralProcessoAdministrativoSancionador — FUNCIONANDO 200 OK
 **Transparencia servidores:** dadosabertos-download.cgu.gov.br/saida/servidores/YYYYMM.zip — 403 PERSISTENTE mesmo com Referer
 **World Bank:** apigwext.worldbank.org URL — 404 MORTA
+
+## 2026-05-05 — SESSAO 05/05
+**Cache Python limpo** — camara.py vetorizado ja estava correto, cache antigo causava execucao do iterrows
+**camara.py** — commitado codigo vetorizado sem iterrows, arquivo por arquivo com del df
+**Teste camara** — limit 1000 passou: 265k linhas processadas, 1000 Expense nodes carregados OK
+**Fila rodando** — siop OK, opensanctions em load, transparencia e tse na fila
+**dbfread** — instalado e adicionado ao pyproject.toml para conversao DBC DATASUS
+**Analise 4 pendentes** — eu_sanctions/pep_cgu/world_bank ja cobertos pelo opensanctions. DATASUS via FTP+dbfread viavel
+**FTP DATASUS** — acessivel sem login: ftp://ftp.datasus.gov.br/dissemin/publicos/
+**download_datasus.py** — PENDENTE implementar usando FTP + dbfread
