@@ -144,7 +144,10 @@ class CamaraPipeline(Pipeline):
 
         # expense_id
         raw_id = "camara_" + df["deputy_id"] + "_" + df["date"] + "_" + df["supplier_doc"] + "_" + df["value"].astype(str)
-        df["expense_id"] = raw_id.apply(lambda x: hashlib.sha256(x.encode()).hexdigest()[:16])
+        df["expense_id"] = pd.util.hash_pandas_object(df[["deputy_id","date","supplier_doc","value"]], index=False).astype(str).str[:16]
+
+
+
 
         # Expenses
         exp = df[["expense_id","deputy_id","expense_type","value","date","supplier_doc"]].copy()
