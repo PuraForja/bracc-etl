@@ -229,3 +229,8 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Analise 4 pendentes** — eu_sanctions/pep_cgu/world_bank ja cobertos pelo opensanctions. DATASUS via FTP+dbfread viavel
 **FTP DATASUS** — acessivel sem login: ftp://ftp.datasus.gov.br/dissemin/publicos/
 **download_datasus.py** — PENDENTE implementar usando FTP + dbfread
+
+**eu_sanctions** — IP BR bloqueado, solucao: dados ja estao dentro do opensanctions importado
+**pep_cgu** — auth 403, solucao: opensanctions tem GlobalPEP + TSE cobre PEPs eleitos
+**world_bank** — URL morta, solucao: dados debarred ja estao dentro do opensanctions
+**datasus** — pipeline datasus.py existe, falta download_datasus.py via FTP+dbfread — PENDENTE
