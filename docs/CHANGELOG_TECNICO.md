@@ -248,3 +248,19 @@ cd ~/Downloads/br-acc-novo && git status --short
 [ ] Implementar download_datasus.py via FTP+dbfread
 [ ] Verificar PNCP progresso e retomar se parou
 [ ] Gerar v22 ao final da proxima sessao
+
+### [05/05/2026] — transparencia/servidores.csv — PENDENTE
+**Problema:** servidores.csv nao encontrado em data/transparencia durante importacao
+**Causa:** download_transparencia.py retorna 403 para servidores (URL do mes atual nao disponivel)
+**Impacto:** servidores publicos federais ausentes do Neo4j (nome, CPF, orgao, cargo, salario)
+**Acao:** testar download com mes anterior: uv run python scripts/download_transparencia.py --output-dir ../data/transparencia --month 202503
+**Apos download:** reimportar so transparencia sem refazer fila toda
+**Testado:** nao
+
+### [05/05/2026] — transparencia/servidores.csv — PENDENTE
+**Problema:** servidores.csv nao encontrado em data/transparencia durante importacao
+**Causa:** download_transparencia.py retorna 403 para servidores (URL do mes atual nao disponivel)
+**Impacto:** servidores publicos federais ausentes do Neo4j (nome, CPF, orgao, cargo, salario)
+**Acao:** testar download com mes anterior: uv run python scripts/download_transparencia.py --output-dir ../data/transparencia --month 202503
+**Apos download:** reimportar so transparencia sem refazer fila toda
+**Testado:** nao
