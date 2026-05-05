@@ -276,3 +276,12 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Problema:** apply(sha256) em 265k linhas por arquivo matava o processo apos ~40min sem logar erro
 **Solucao:** substituir por pd.util.hash_pandas_object() — operacao vetorizada nativa pandas
 **Testado:** nao — relancando agora
+
+### [05/05/2026] — camara.py — fix sha256 + diagnostico + batch_size=250
+**Problema 1:** apply(sha256) em 265k linhas matava o processo
+**Solucao 1:** pd.util.hash_pandas_object() vetorizado — commit 2b648f0
+**Problema 2:** load_nodes 192k Expense nodes batch_size=500 matava Neo4j
+**Solucao 2:** batch_size=250 — linha 198 camara.py
+**Logs adicionados:** expense_id gerado + to_dict OK para diagnostico
+**Status:** camara rodando com batch_size=250 — aguardando resultado
+**Testado:** parcial — transformacao OK, load em andamento

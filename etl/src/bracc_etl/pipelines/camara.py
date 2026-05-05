@@ -145,6 +145,7 @@ class CamaraPipeline(Pipeline):
         # expense_id
         raw_id = "camara_" + df["deputy_id"] + "_" + df["date"] + "_" + df["supplier_doc"] + "_" + df["value"].astype(str)
         df["expense_id"] = pd.util.hash_pandas_object(df[["deputy_id","date","supplier_doc","value"]], index=False).astype(str).str[:16]
+        logger.info("  expense_id gerado -- %d rows", len(df))
 
 
 
@@ -156,6 +157,7 @@ class CamaraPipeline(Pipeline):
         exp["source"] = "camara"
         exp = exp.drop_duplicates(subset=["expense_id"])
         expenses = exp.to_dict("records")
+        logger.info("  to_dict expenses OK -- %d registros", len(expenses))
 
         # Deputies com CPF
         df["deputy_cpf_digits"] = df["deputy_cpf_raw"].str.replace(nd, "", regex=True)
@@ -193,7 +195,7 @@ class CamaraPipeline(Pipeline):
             logger.warning("No CSV files found in %s", camara_dir)
             return
 
-        loader = Neo4jBatchLoader(self.driver, batch_size=500)
+        loader = Neo4jBatchLoader(self.driver, batch_size=250)
 
         # Deduplicação global entre arquivos
         seen_expenses:  set[str] = set()
