@@ -285,3 +285,8 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Logs adicionados:** expense_id gerado + to_dict OK para diagnostico
 **Status:** camara rodando com batch_size=250 — aguardando resultado
 **Testado:** parcial — transformacao OK, load em andamento
+
+### [05/05/2026] — FONTES_EXTERNAS_REFERENCIA.md — novo documento
+brazil-visible: 92 fontes com health check — util para resolver 403s
+source_registry: 109 fontes — 46 implementadas — 63 not_built
+Prioridade AM: tce_am, mapbiomas, anm_mining, sicar, cnciai_improbidade
