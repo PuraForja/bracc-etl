@@ -264,3 +264,10 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Acao:** testar download com mes anterior: uv run python scripts/download_transparencia.py --output-dir ../data/transparencia --month 202503
 **Apos download:** reimportar so transparencia sem refazer fila toda
 **Testado:** nao
+
+### [05/05/2026] — download_transparencia.py servidores+compras — 403 PERSISTENTE
+**Resultado:** 403 em servidores e compras para 202503 — bloqueio CGU nao e questao de data
+**Emendas:** OK 200 — 859.216 rows baixados
+**Causa provavel:** CGU exige token de API ou navegador autenticado para servidores/compras
+**Acao futura:** cadastrar token em portaldatransparencia.gov.br/api-de-dados/cadastrar-email (mesmo fluxo do PEP)
+**Testado:** sim — 202503 retorna 403 em servidores e compras
