@@ -271,3 +271,8 @@ cd ~/Downloads/br-acc-novo && git status --short
 **Causa provavel:** CGU exige token de API ou navegador autenticado para servidores/compras
 **Acao futura:** cadastrar token em portaldatransparencia.gov.br/api-de-dados/cadastrar-email (mesmo fluxo do PEP)
 **Testado:** sim — 202503 retorna 403 em servidores e compras
+
+### [05/05/2026] — camara.py linha 147 — fix sha256 vetorizado
+**Problema:** apply(sha256) em 265k linhas por arquivo matava o processo apos ~40min sem logar erro
+**Solucao:** substituir por pd.util.hash_pandas_object() — operacao vetorizada nativa pandas
+**Testado:** nao — relancando agora
