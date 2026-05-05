@@ -234,3 +234,8 @@ cd ~/Downloads/br-acc-novo && git status --short
 **pep_cgu** — auth 403, solucao: opensanctions tem GlobalPEP + TSE cobre PEPs eleitos
 **world_bank** — URL morta, solucao: dados debarred ja estao dentro do opensanctions
 **datasus** — pipeline datasus.py existe, falta download_datasus.py via FTP+dbfread — PENDENTE
+**Constraints Neo4j** — verificadas, ja existiam: company_cnpj_unique e person_cpf_unique
+**siop** — importado 05/05 com sucesso: 73.795 LaborStats nodes
+**opensanctions** — importado 05/05: 117.910 GlobalPEP, 8.044 CPF match relationships
+**PNCP** — 69% baixado (3241/4680 combos) em 05/05 ~02h
+**download_bcb.py** — reescrito API Olinda, paginacao PAGE_SIZE=500, retry automatico, 16.395 registros OK
