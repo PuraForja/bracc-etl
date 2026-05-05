@@ -239,3 +239,12 @@ cd ~/Downloads/br-acc-novo && git status --short
 **opensanctions** — importado 05/05: 117.910 GlobalPEP, 8.044 CPF match relationships
 **PNCP** — 69% baixado (3241/4680 combos) em 05/05 ~02h
 **download_bcb.py** — reescrito API Olinda, paginacao PAGE_SIZE=500, retry automatico, 16.395 registros OK
+
+## PENDENCIAS PARA PROXIMA IA — VERIFICAR E REGISTRAR
+[ ] Verificar se referer cepim+pep foi testado com sucesso apos correcao
+[ ] Registrar resultado final da fila transparencia->tse->camara (ainda rodando)
+[ ] Registrar contagem final de nodes apos fila terminar
+[ ] Fazer BACKUP urgente apos fila terminar
+[ ] Implementar download_datasus.py via FTP+dbfread
+[ ] Verificar PNCP progresso e retomar se parou
+[ ] Gerar v22 ao final da proxima sessao
