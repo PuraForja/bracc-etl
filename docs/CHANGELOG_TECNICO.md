@@ -290,3 +290,10 @@ cd ~/Downloads/br-acc-novo && git status --short
 brazil-visible: 92 fontes com health check — util para resolver 403s
 source_registry: 109 fontes — 46 implementadas — 63 not_built
 Prioridade AM: tce_am, mapbiomas, anm_mining, sicar, cnciai_improbidade
+
+### [05/05/2026] — download_datasus.py + datasus.py — CONCLUIDO
+**Download:** S3 dadosabertos.saude.gov.br — 54MB zip, 221MB CSV
+**URL:** https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/CNES/cnes_estabelecimentos_csv.zip
+**Correcao datasus.py:** sep=; encoding=latin-1 + COLUMN_MAP para colunas reais do CSV
+**Resultado:** 1.501.125 nos Health importados no Neo4j
+**Testado:** sim — processo completo download+importacao OK
