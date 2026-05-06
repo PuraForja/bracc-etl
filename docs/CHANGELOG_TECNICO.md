@@ -17,6 +17,52 @@
 
 ---
 
+## 2026-05-05 — Backup Neo4j + fila relançada
+
+### [05/05/2026] — Neo4j backup — feat ✅
+
+**Backup concluído:** 10.2GB salvo em `C:\Users\Rolim\Downloads\neo4j-backup-20260505.tar.gz`
+**Horário:** 23:41
+**Conteúdo:** ~87M nodes — estado completo do banco
+
+**Comando usado:**
+```powershell
+docker run --rm -v br-acc-novo_neo4j-data:/data -v C:\Users\Rolim\Downloads:/backup alpine tar czf /backup/neo4j-backup-20260505.tar.gz /data
+```
+
+**Testado:** ✅ arquivo verificado (10.245.169.415 bytes)
+
+---
+
+### [05/05/2026] — datasus — importação ✅
+
+**Pipeline datasus importado com sucesso.**
+**Resultado:** 612.561 nodes Health no Neo4j
+**Horário:** 20:30–20:38
+
+**Obs:** Não constava no MASTER v21 — descoberto na auditoria do banco.
+
+**Testado:** ✅ confirmado via cypher-shell
+
+---
+
+### [05/05/2026] — fila transparencia→tse→camara — incidente ⚠️
+
+**Problema:** Fila principal morreu às ~20:30 com erro `ServiceUnavailable` —
+Neo4j recusou conexão (container provavelmente reiniciando naquele momento).
+transparencia, tse e camara **não foram importados**.
+
+**Solução:** Fila relançada às ~00:00 sem o camara (código ainda em ajuste):
+`transparencia → tse`
+
+**Camara:** removido da fila por ora — importar separado quando código estiver validado.
+
+**Tempo estimado:** 3–6 horas para transparencia+tse.
+
+**Testado:** em andamento
+
+---
+
 ## 2026-05-05 — Neo4j auditado — estado real verificado
 
 ### [05/05/2026] — Neo4j — auditoria ✅
@@ -261,8 +307,8 @@ transferegov.py, cnpj.py
 ## PENDÊNCIAS (TODO)
 
 ```
-[ ] Fila rodando: transparencia → tse → camara
-[ ] BACKUP Neo4j URGENTE — após fila terminar
+[ ] Fila rodando: transparencia → tse (camara separado depois)
+[ ] BACKUP Neo4j — após fila terminar (backup pré-fila já feito em 05/05 — 10.2GB)
 [ ] PNCP — aguardar 100% download, então importar
 [ ] INPE PRODES + SICAR + IBAMA — tríade ambiental AM (via brazil-visible)
 [ ] ANTAQ — transporte aquaviário AM (via brazil-visible)
