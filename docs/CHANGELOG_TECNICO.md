@@ -1,3 +1,72 @@
+## 2026-05-07 — orchestrator.sh criado + MASTER v22
+
+### [07/05/2026] — orchestrator.sh — feat ✅
+
+**O que é:** Script bash que orquestra download + importação de todas as fontes em sequência.
+
+**Funcionalidades:**
+- Sobe Docker automaticamente e aguarda Neo4j healthy antes de começar
+- Inicia PNCP em background com loop de reinício automático
+- Para cada fonte: verifica se dados existem → baixa se não tiver → importa
+- Lista SKIP no topo — adicione fontes para ignorar completamente
+- Ctrl+C encerra com segurança: aguarda processo atual terminar, informa onde parou e como retomar
+- Beep ao concluir cada fonte (tom diferente para erros)
+- Fila ordenada: menores primeiro, pesadas por último
+- Resumo final: Total | Puladas | Erros
+
+**Uso:**
+```bash
+bash ~/Downloads/br-acc-novo/orchestrator.sh          # fila completa
+bash ~/Downloads/br-acc-novo/orchestrator.sh bcb ceaf  # fontes específicas
+bash ~/Downloads/br-acc-novo/orchestrator.sh FONTE     # retomar de onde parou
+```
+
+**Testado:** ✅ bcb passou download + importação
+
+---
+
+### [07/05/2026] — PNCP — loop de reinício ativo
+
+**Status:** ~57% baixado (julho/2023), rodando com loop de reinício automático.
+Checkpoint preservado — não perde progresso se cair.
+
+---
+
+### [07/05/2026] — DESCOBERTA: scripts de download ausentes
+
+**Problema:** bndes, ibama, inep, pgfn, tcu, comprasnet, transferegov
+não têm script de download — só pipeline de importação.
+**Próximo passo:** Criar scripts começando pelo ibama (CRÍTICO AM).
+
+---
+
+## COMO IDENTIFICAR ONDE PAROU — EXECUTE SEMPRE AO INICIAR
+
+```bash
+# 1. Docker rodando?
+docker ps | grep neo4j
+
+# 2. Se não: subir
+cd ~/Downloads/br-acc-novo && docker compose up -d
+
+# 3. Estado do banco
+docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "MATCH (n) RETURN labels(n)[0] as tipo, count(n) as total ORDER BY total DESC"
+
+# 4. Últimas importações
+tail -20 ~/Downloads/br-acc-novo/pipeline_imports.log
+
+# 5. PNCP rodando?
+ps aux | grep pncp
+
+# 6. Progresso PNCP
+wc -l ~/Downloads/br-acc-novo/data/pncp/.checkpoint && tail -1 ~/Downloads/br-acc-novo/download_pncp.log
+
+# 7. O que falta
+cat ~/Downloads/br-acc-novo/docs/CHANGELOG_TECNICO.md | grep "\[ \]"
+```
+
+---
+
 # CHANGELOG TÉCNICO — Alterações no Código Fonte
 > Este arquivo registra TODAS as alterações feitas nos arquivos do projeto.
 > Qualquer IA ou desenvolvedor deve ler este arquivo antes de continuar o trabalho.
