@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # orchestrator.sh — Setup + Download + Importação sequencial
 # Uso: bash orchestrator.sh [fonte1 fonte2 ...]
-# Sem argumentos: usa a fila padrão abaixo
+#      bash orchestrator.sh --force fonte1  # força reimportação
 # Logs: pipeline_imports.log
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ETL_DIR="$ROOT/etl"
@@ -9,6 +9,48 @@ DATA_DIR="$ROOT/data"
 LOG="$ROOT/pipeline_imports.log"
 NEO4J_PASSWORD="${NEO4J_PASSWORD:-changeme}"
 INSTALLED_FLAG="$ROOT/.installed"
+
+# ── MAPA fonte → label Neo4j ──────────────────────────────────────────────────
+declare -A LABEL_MAP
+LABEL_MAP[bcb]="Sanction"
+LABEL_MAP[bndes]="Payment"
+LABEL_MAP[camara]="Expense"
+LABEL_MAP[camara_inquiries]="Inquiry"
+LABEL_MAP[ceaf]="Expulsion"
+LABEL_MAP[cepim]="BarredNGO"
+LABEL_MAP[cnpj]="Company"
+LABEL_MAP[comprasnet]="Contract"
+LABEL_MAP[cpgf]="GovCardExpense"
+LABEL_MAP[cvm]="CVMProceeding"
+LABEL_MAP[cvm_funds]="Fund"
+LABEL_MAP[datasus]="Health"
+LABEL_MAP[eu_sanctions]="InternationalSanction"
+LABEL_MAP[holdings]="Partner"
+LABEL_MAP[ibama]="Sanction"
+LABEL_MAP[icij]="OffshoreEntity"
+LABEL_MAP[inep]="MunicipalGazetteAct"
+LABEL_MAP[leniency]="LeniencyAgreement"
+LABEL_MAP[ofac]="InternationalSanction"
+LABEL_MAP[opensanctions]="GlobalPEP"
+LABEL_MAP[pgfn]="Sanction"
+LABEL_MAP[querido_diario]="MunicipalGazetteAct"
+LABEL_MAP[renuncias]="TaxWaiver"
+LABEL_MAP[sanctions]="Sanction"
+LABEL_MAP[senado]="Expense"
+LABEL_MAP[senado_cpis]="CPI"
+LABEL_MAP[siconfi]="MunicipalFinance"
+LABEL_MAP[siop]="Amendment"
+LABEL_MAP[tce_am]="Contract"
+LABEL_MAP[tcu]="Sanction"
+LABEL_MAP[tesouro_emendas]="Amendment"
+LABEL_MAP[transferegov]="Payment"
+LABEL_MAP[transparencia]="Contract"
+LABEL_MAP[tse]="Election"
+LABEL_MAP[tse_bens]="Person"
+LABEL_MAP[tse_filiados]="Person"
+LABEL_MAP[un_sanctions]="InternationalSanction"
+LABEL_MAP[viagens]="GovTravel"
+LABEL_MAP[world_bank]="InternationalSanction"
 
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
 SKIP=(
@@ -40,7 +82,6 @@ DEFAULT_QUEUE=(
     siconfi
     siop
     opensanctions
-    camara
     transparencia
     tse
     viagens
@@ -50,6 +91,7 @@ DEFAULT_QUEUE=(
 # ─────────────────────────────────────────────────────────────────────────────
 CURRENT_FONTE=""
 CURRENT_PID=""
+FORCE_REIMPORT=0
 
 graceful_shutdown() {
     echo "" | tee -a "$LOG"
@@ -65,17 +107,14 @@ graceful_shutdown() {
             sleep 1; waited=$((waited + 1)); echo -n "." >&2
         done
         echo "" | tee -a "$LOG"
-        if kill -0 "$CURRENT_PID" 2>/dev/null; then
-            kill -9 "$CURRENT_PID" 2>/dev/null
-            echo "  │  Processo encerrado forçadamente" | tee -a "$LOG"
-        else
-            echo "  │  ✅ Processo encerrado com segurança" | tee -a "$LOG"
-        fi
+        kill -0 "$CURRENT_PID" 2>/dev/null && kill -9 "$CURRENT_PID" 2>/dev/null
+        echo "  │  ✅ Processo encerrado" | tee -a "$LOG"
     fi
     echo "" | tee -a "$LOG"
     if [[ -n "$CURRENT_FONTE" ]]; then
         echo "  │  Parou em: $CURRENT_FONTE" | tee -a "$LOG"
         echo "  │  Para retomar: bash orchestrator.sh $CURRENT_FONTE" | tee -a "$LOG"
+        echo "  │  Para forçar reimportação: bash orchestrator.sh --force $CURRENT_FONTE" | tee -a "$LOG"
     fi
     echo "  ⛔  ENCERRADO — $(date '+%d/%m/%Y %H:%M')" | tee -a "$LOG"
     echo "  💡  PNCP continua em background" | tee -a "$LOG"
@@ -111,11 +150,28 @@ is_skipped() {
     return 1
 }
 
+is_imported() {
+    local fonte="$1"
+    grep -q "^imported: $fonte " "$INSTALLED_FLAG" 2>/dev/null
+}
+
+mark_imported() {
+    local fonte="$1"
+    echo "imported: $fonte $(date '+%Y-%m-%d %H:%M:%S')" >> "$INSTALLED_FLAG"
+}
+
+neo4j_count() {
+    local label="$1"
+    docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+        "MATCH (n:$label) RETURN count(n) as total" 2>/dev/null \
+        | grep -E '^[0-9]+$' | head -1
+}
+
 # ── SETUP ────────────────────────────────────────────────────────────────────
 run_setup() {
     log_banner "🔧  SETUP INICIAL"
     local errors=0
-    for tool in docker uv git; do
+    for tool in docker git; do
         if ! command -v $tool &>/dev/null; then
             log_err "$tool não encontrado"
             errors=$((errors + 1))
@@ -123,11 +179,41 @@ run_setup() {
             log_ok "$tool OK"
         fi
     done
+    if ! command -v uv &>/dev/null && ! ~/.local/bin/uv --version &>/dev/null 2>&1; then
+        log_err "uv não encontrado. Instale: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        errors=$((errors + 1))
+    else
+        log_ok "uv OK"
+    fi
     [[ $errors -gt 0 ]] && { log_err "$errors dependência(s) faltando"; exit 1; }
     log_info "Instalando dependências Python..."
     cd "$ETL_DIR" && uv sync 2>&1 | filter_output | tee -a "$LOG"
     log_ok "Dependências instaladas"
     echo "installed: $(date '+%Y-%m-%d %H:%M:%S')" > "$INSTALLED_FLAG"
+    log_blank
+}
+
+# ── VALIDAÇÃO FINAL ──────────────────────────────────────────────────────────
+run_validation() {
+    log_banner "🔍  VALIDAÇÃO FINAL — verificando Neo4j"
+    local ok=0
+    local fail=0
+    for fonte in "${DEFAULT_QUEUE[@]}"; do
+        is_skipped "$fonte" && continue
+        local label="${LABEL_MAP[$fonte]}"
+        [[ -z "$label" ]] && continue
+        local count
+        count=$(neo4j_count "$label")
+        if [[ -n "$count" ]] && [[ "$count" -gt 0 ]]; then
+            log_info "✅ $fonte — $label: $count nodes"
+            ok=$((ok + 1))
+        else
+            log_info "⚠️  $fonte — $label: 0 nodes (pode não ter sido importado)"
+            fail=$((fail + 1))
+        fi
+    done
+    log_blank
+    log_info "Validação: $ok OK  |  $fail com zero nodes"
     log_blank
 }
 
@@ -199,6 +285,7 @@ run_import() {
     local exit_code=$?
     CURRENT_PID=""
     if [[ $exit_code -eq 0 ]]; then
+        mark_imported "$fonte"
         log_ok "Importação concluída: $fonte"
         beep
     else
@@ -209,17 +296,42 @@ run_import() {
 }
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
+
+# Processar argumentos
+FORCE_FONTES=()
+CUSTOM_QUEUE=()
+i=1
+while [[ $i -le $# ]]; do
+    arg="${!i}"
+    if [[ "$arg" == "--force" ]]; then
+        FORCE_REIMPORT=1
+        i=$((i + 1))
+        while [[ $i -le $# ]]; do
+            FORCE_FONTES+=("${!i}")
+            i=$((i + 1))
+        done
+    else
+        CUSTOM_QUEUE+=("$arg")
+        i=$((i + 1))
+    fi
+done
+
 clear
 log_banner "🚀  BRACC-ETL ORQUESTRADOR  —  $(date '+%d/%m/%Y %H:%M')"
 echo ""
-echo "  Este programa vai baixar e importar todas as fontes de dados."
+echo "  Este programa baixa e importa todas as fontes de dados."
+echo "  Fontes já importadas são puladas automaticamente."
 echo ""
-echo "  ┌────────────────────────────────────────────────┐"
-echo "  │  Ctrl+C encerra com segurança a qualquer hora  │"
-echo "  │  O processo atual será finalizado antes        │"
-echo "  │  Você verá onde parou e como retomar           │"
-echo "  └────────────────────────────────────────────────┘"
+echo "  ┌────────────────────────────────────────────────────┐"
+echo "  │  Ctrl+C encerra com segurança a qualquer momento   │"
+echo "  │  O processo atual é finalizado antes de encerrar   │"
+echo "  │  Você verá onde parou e como retomar               │"
+echo "  └────────────────────────────────────────────────────┘"
 echo ""
+if [[ $FORCE_REIMPORT -eq 1 ]]; then
+    echo "  ⚠️  Modo --force ativo para: ${FORCE_FONTES[*]}"
+    echo ""
+fi
 read -rp "  Pressione ENTER para iniciar..." _
 echo "" | tee -a "$LOG"
 
@@ -233,8 +345,8 @@ fi
 start_docker
 start_pncp_background
 
-if [[ $# -gt 0 ]]; then
-    QUEUE=("$@")
+if [[ ${#CUSTOM_QUEUE[@]} -gt 0 ]]; then
+    QUEUE=("${CUSTOM_QUEUE[@]}")
     log_info "Fila customizada: ${QUEUE[*]}"
 else
     QUEUE=("${DEFAULT_QUEUE[@]}")
@@ -251,17 +363,35 @@ for fonte in "${QUEUE[@]}"; do
     COUNT=$((COUNT + 1))
     CURRENT_FONTE="$fonte"
     log_section "[$COUNT/$TOTAL] $fonte"
+
     if is_skipped "$fonte"; then
         log_skip "na lista SKIP — ignorada"
         SKIPPED=$((SKIPPED + 1))
         continue
     fi
+
+    # Verificar se já foi importado (a menos que --force)
+    force_this=0
+    for ff in "${FORCE_FONTES[@]}"; do [[ "$ff" == "$fonte" ]] && force_this=1; done
+    if [[ $FORCE_REIMPORT -eq 0 ]] || [[ $force_this -eq 0 ]]; then
+        if is_imported "$fonte"; then
+            local_date=$(grep "^imported: $fonte " "$INSTALLED_FLAG" | tail -1 | awk '{print $3, $4}')
+            log_skip "já importado em $local_date — pulando"
+            SKIPPED=$((SKIPPED + 1))
+            continue
+        fi
+    fi
+
     run_download "$fonte" || { ERRORS=$((ERRORS + 1)); continue; }
     run_import "$fonte"   || { ERRORS=$((ERRORS + 1)); continue; }
     log_ok "[$COUNT/$TOTAL] $fonte concluído"
 done
 
 CURRENT_FONTE=""
+
+# Validação final
+run_validation
+
 log_banner "✅  CONCLUÍDO  —  $(date '+%d/%m/%Y %H:%M')"
 log_info "Total: $TOTAL  |  Puladas: $SKIPPED  |  Erros: $ERRORS"
 log_blank
