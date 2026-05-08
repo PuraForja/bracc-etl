@@ -416,3 +416,20 @@ docker exec bracc-neo4j cypher-shell -u neo4j -p changeme \
 
 *Criado em 01/05/2026*
 *Atualizado em 05/05/2026 — auditoria Neo4j: 87M nodes verificados. Health(DATASUS) 612k confirmado. catalogo_fontes_bracc_v2.docx gerado.*
+
+### [07/05/2026] — orchestrator.sh v3 — cache + validacao + --force
+**Bug pendente:** ler Neo4j ANTES da fila — se label tem nodes>0, pular importacao
+**LABEL_MAP:** definido no orchestrator.sh — mapeia fonte para label Neo4j
+
+### [07/05/2026] — STATUS NEO4J 20h40
+Company:40.6M Partner:17.7M MunicipalFinance:3.4M Person:2.6M Health:612k
+Expense:494k TaxWaiver:291k GovTravel:260k GovCardExpense:131k GlobalPEP:117k
+Amendment:101k Contract:64k Fund:41k Payment:40k Election:33k Sanction:24k
+
+### [07/05/2026] — PENDENTES PROXIMA SESSAO
+[ ] orchestrator: ler Neo4j antes da fila e pular fontes com nodes>0
+[ ] camara: aguardar fix colega
+[ ] senado: investigar erro importacao
+[ ] PNCP: ~57% — aguardar 100% e importar
+[ ] Scripts faltando: bndes ibama inep pgfn tcu comprasnet transferegov
+[ ] Backup Neo4j URGENTE
