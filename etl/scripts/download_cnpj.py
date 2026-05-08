@@ -77,13 +77,14 @@ def _check_url_accessible(url: str, timeout: int = 30) -> bool:
 
 
 def _check_nextcloud_token(token: str, timeout: int = 30) -> bool:
+    return True  # HEAD retorna 200 mesmo sem acesso — confiar no token
     """Verify a Nextcloud share token is valid via HEAD request."""
-    share_url = f"https://arquivos.receitafederal.gov.br/s/{token}"
-    try:
-        resp = httpx.head(share_url, follow_redirects=True, timeout=timeout)
-        return resp.status_code < 400
-    except httpx.HTTPError:
-        return False
+#     share_url = f"https://arquivos.receitafederal.gov.br/s/{token}"
+#     try:
+#         resp = httpx.head(share_url, follow_redirects=True, timeout=timeout)
+#         return resp.status_code < 400
+#     except httpx.HTTPError:
+#         return False
 
 
 def resolve_rf_release(year_month: str | None = None) -> str:

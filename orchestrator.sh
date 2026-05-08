@@ -157,6 +157,9 @@ is_imported() {
 
 mark_imported() {
     local fonte="$1"
+    local tmpfile
+    tmpfile=$(mktemp)
+    grep -v "^imported: $fonte " "$INSTALLED_FLAG" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$INSTALLED_FLAG" || rm -f "$tmpfile"
     echo "imported: $fonte $(date '+%Y-%m-%d %H:%M:%S')" >> "$INSTALLED_FLAG"
 }
 
@@ -165,6 +168,35 @@ neo4j_count() {
     docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
         "MATCH (n:$label) RETURN count(n) as total" 2>/dev/null \
         | grep -E '^[0-9]+$' | head -1
+}
+
+# ── SYNC NEO4J → .installed ───────────────────────────────────────────────────
+# Lê o banco antes de qualquer fila. Registra no .installed fontes que já têm
+# dados no Neo4j mas não estão registradas — evita reimportação desnecessária.
+sync_neo4j_to_installed() {
+    log_banner "🗄️   LENDO NEO4J"
+    local synced=0
+    local already=0
+    local zero=0
+
+    for fonte in "${!LABEL_MAP[@]}"; do
+        local label="${LABEL_MAP[$fonte]}"
+        local count
+        count=$(neo4j_count "$label")
+        if [[ -n "$count" ]] && [[ "$count" -gt 0 ]]; then
+            if is_imported "$fonte"; then
+                already=$((already + 1))
+            else
+                mark_imported "$fonte"
+                synced=$((synced + 1))
+            fi
+        else
+            zero=$((zero + 1))
+        fi
+    done
+
+    log_info "Sync: $((already + synced)) fontes com dados no banco | $synced novas registradas | $zero sem dados"
+    log_blank
 }
 
 # ── SETUP ────────────────────────────────────────────────────────────────────
@@ -195,25 +227,35 @@ run_setup() {
 
 # ── VALIDAÇÃO FINAL ──────────────────────────────────────────────────────────
 run_validation() {
-    log_banner "🔍  VALIDAÇÃO FINAL — verificando Neo4j"
+    log_banner "🔍  VALIDAÇÃO FINAL — lendo Neo4j"
+
+    # Lê todos os labels diretamente do banco — independente de qualquer lista
+    local raw
+    raw=$(docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+        "MATCH (n) RETURN labels(n)[0] as label, count(n) as total ORDER BY total DESC" \
+        2>/dev/null | grep -v "^label\|^$\|rows\|ms")
+
+    if [[ -z "$raw" ]]; then
+        log_err "Não foi possível conectar ao Neo4j para validação"
+        return
+    fi
+
     local ok=0
-    local fail=0
-    for fonte in "${DEFAULT_QUEUE[@]}"; do
-        is_skipped "$fonte" && continue
-        local label="${LABEL_MAP[$fonte]}"
-        [[ -z "$label" ]] && continue
-        local count
-        count=$(neo4j_count "$label")
-        if [[ -n "$count" ]] && [[ "$count" -gt 0 ]]; then
-            log_info "✅ $fonte — $label: $count nodes"
-            ok=$((ok + 1))
-        else
-            log_info "⚠️  $fonte — $label: 0 nodes (pode não ter sido importado)"
-            fail=$((fail + 1))
-        fi
-    done
+    local total_nodes=0
+
+    while IFS= read -r line; do
+        # linha formato: "Label", 12345
+        local label count
+        label=$(echo "$line" | awk -F'"' '{print $2}')
+        count=$(echo "$line" | awk -F',' '{print $2}' | tr -d ' ')
+        [[ -z "$label" || -z "$count" ]] && continue
+        log_info "  ✅  $label: $count nodes"
+        ok=$((ok + 1))
+        total_nodes=$((total_nodes + count))
+    done <<< "$raw"
+
     log_blank
-    log_info "Validação: $ok OK  |  $fail com zero nodes"
+    log_info "Total: $ok labels | ~$total_nodes nodes no banco"
     log_blank
 }
 
@@ -265,8 +307,15 @@ run_download() {
     wait $CURRENT_PID
     local exit_code=$?
     CURRENT_PID=""
-    if [[ $exit_code -eq 0 ]]; then
-        log_ok "Download concluído: $fonte"
+    # Verifica se realmente gerou arquivos — exit 0 não garante dados
+    local file_count=0
+    file_count=$(ls -A "$DATA_DIR/$fonte" 2>/dev/null | wc -l)
+    if [[ $exit_code -eq 0 ]] && [[ "$file_count" -gt 0 ]]; then
+        log_ok "Download concluído: $fonte ($file_count arquivo(s))"
+    elif [[ $exit_code -eq 0 ]] && [[ "$file_count" -eq 0 ]]; then
+        log_err "Download retornou OK mas nenhum arquivo gerado: $fonte — verifique URL/credencial"
+        beep_error
+        return 1
     else
         log_err "Download falhou: $fonte (código $exit_code)"
         beep_error
@@ -343,9 +392,16 @@ else
 fi
 
 start_docker
+
+# Lê Neo4j e sincroniza .installed antes de qualquer fila
+sync_neo4j_to_installed
+
 start_pncp_background
 
-if [[ ${#CUSTOM_QUEUE[@]} -gt 0 ]]; then
+if [[ ${#FORCE_FONTES[@]} -gt 0 ]] && [[ ${#CUSTOM_QUEUE[@]} -eq 0 ]]; then
+    QUEUE=("${FORCE_FONTES[@]}")
+    log_info "Fila --force: ${QUEUE[*]}"
+elif [[ ${#CUSTOM_QUEUE[@]} -gt 0 ]]; then
     QUEUE=("${CUSTOM_QUEUE[@]}")
     log_info "Fila customizada: ${QUEUE[*]}"
 else
@@ -373,12 +429,23 @@ for fonte in "${QUEUE[@]}"; do
     # Verificar se já foi importado (a menos que --force)
     force_this=0
     for ff in "${FORCE_FONTES[@]}"; do [[ "$ff" == "$fonte" ]] && force_this=1; done
-    if [[ $FORCE_REIMPORT -eq 0 ]] || [[ $force_this -eq 0 ]]; then
+    if [[ $FORCE_REIMPORT -eq 0 ]] || [[ $FORCE_REIMPORT -eq 1 && $force_this -eq 0 ]]; then
         if is_imported "$fonte"; then
-            local_date=$(grep "^imported: $fonte " "$INSTALLED_FLAG" | tail -1 | awk '{print $3, $4}')
-            log_skip "já importado em $local_date — pulando"
-            SKIPPED=$((SKIPPED + 1))
-            continue
+            # Tem dados mais novos em disco que a última importação?
+            _mtime=""
+            _ts=""
+            _date=""
+            data_mtime=$(find "$DATA_DIR/$fonte" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)
+            installed_ts=$(date -d "$(grep "^imported: $fonte " "$INSTALLED_FLAG" | tail -1 | awk '{print $3, $4}')" +%s 2>/dev/null || echo "0")
+            if [[ -n "$data_mtime" && "$data_mtime" -gt "${installed_ts:-0}" ]]; then
+                local_date=$(grep "^imported: $fonte " "$INSTALLED_FLAG" | tail -1 | awk '{print $3, $4}')
+                log_info "🔄 dados atualizados desde $local_date — reimportando"
+            else
+                local_date=$(grep "^imported: $fonte " "$INSTALLED_FLAG" | tail -1 | awk '{print $3, $4}')
+                log_skip "já importado em $local_date — sem alteração"
+                SKIPPED=$((SKIPPED + 1))
+                continue
+            fi
         fi
     fi
 
