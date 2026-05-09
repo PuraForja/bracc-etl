@@ -433,3 +433,12 @@ Amendment:101k Contract:64k Fund:41k Payment:40k Election:33k Sanction:24k
 [ ] PNCP: ~57% — aguardar 100% e importar
 [ ] Scripts faltando: bndes ibama inep pgfn tcu comprasnet transferegov
 [ ] Backup Neo4j URGENTE
+
+### [08/05/2026] — camara.py — INVESTIGACAO EM ANDAMENTO
+**Status:** processo morre silenciosamente apos 'chunk 1 — 5000 linhas'
+**Confirmado OK:** pandas transform isolado OK, Neo4j MERGE 5000 nodes OK
+**Confirmado:** problema ocorre dentro do pipeline completo — nao eh pandas nem Neo4j isolados
+**Suspeita:** combinacao pandas+Neo4j no mesmo processo — possivel stack overflow ou OOM silencioso
+**loader.py:** corrigido session.run -> execute_write — commit pendente
+**runner.py:** chunk_size default 50000->5000 — commit pendente
+**Proximo passo:** rodar test_camara.py (arquivo em outputs/) com logs T1-T9+L1-L2 para isolar etapa exata

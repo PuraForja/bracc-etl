@@ -118,7 +118,7 @@ def cli() -> None:
 @click.option("--neo4j-database", default="neo4j", help="Neo4j database")
 @click.option("--data-dir", default="./data", help="Directory for downloaded data")
 @click.option("--limit", type=int, default=None, help="Limit rows processed")
-@click.option("--chunk-size", type=int, default=50_000, help="Chunk size for batch processing")
+@click.option("--chunk-size", type=int, default=5_000, help="Chunk size for batch processing")
 @click.option(
     "--linking-tier",
     type=click.Choice(["community", "full"]),

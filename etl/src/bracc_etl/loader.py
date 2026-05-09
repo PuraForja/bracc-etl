@@ -3,14 +3,10 @@ import os
 import re
 import time
 from typing import Any
-
 from neo4j import Driver
-from neo4j.exceptions import TransientError
-
+from neo4j.exceptions import TransientError, ServiceUnavailable
 logger = logging.getLogger(__name__)
-
 _SAFE_KEY = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
-
 _MAX_RETRIES = 5
 
 
@@ -20,7 +16,7 @@ class Neo4jBatchLoader:
     def __init__(
         self,
         driver: Driver,
-        batch_size: int = 10_000,
+        batch_size: int = 500,
         neo4j_database: str | None = None,
     ) -> None:
         self.driver = driver
@@ -29,16 +25,48 @@ class Neo4jBatchLoader:
         self._total_written = 0
 
     def _run_batch_once(self, query: str, batch: list[dict[str, Any]]) -> None:
+        """Executa um batch usando execute_write — com retry automático do driver."""
+        def _tx(tx: Any) -> None:
+            tx.run(query, rows=batch)
+
         with self.driver.session(database=self.neo4j_database) as session:
-            session.run(query, {"rows": batch})
+            session.execute_write(_tx)
 
     def _run_batches(self, query: str, rows: list[dict[str, Any]]) -> int:
         total = 0
         for i in range(0, len(rows), self.batch_size):
-            batch = rows[i : i + self.batch_size]
-            self._run_batch_once(query, batch)
-            total += len(batch)
-            self._total_written += len(batch)
+            batch = rows[i: i + self.batch_size]
+            for attempt in range(_MAX_RETRIES):
+                try:
+                    self._run_batch_once(query, batch)
+                    total += len(batch)
+                    self._total_written += len(batch)
+                    break
+                except (TransientError, ServiceUnavailable) as e:
+                    wait = 2 ** attempt
+                    logger.warning(
+                        "Erro transiente batch %d, tentativa %d/%d em %ds: %s",
+                        i // self.batch_size,
+                        attempt + 1,
+                        _MAX_RETRIES,
+                        wait,
+                        e,
+                    )
+                    time.sleep(wait)
+                except Exception as e:
+                    logger.error(
+                        "Erro inesperado batch %d: %s — pulando",
+                        i // self.batch_size,
+                        e,
+                    )
+                    break
+            else:
+                logger.error(
+                    "Batch %d falhou após %d tentativas — pulando",
+                    i // self.batch_size,
+                    _MAX_RETRIES,
+                )
+
         if total >= 10_000:
             logger.info("  Batch written: %d rows (cumulative: %d)", total, self._total_written)
         return total
@@ -49,32 +77,37 @@ class Neo4jBatchLoader:
         rows: list[dict[str, Any]],
         batch_size: int = 500,
     ) -> int:
-        """Run query in batches with exponential-backoff retry on deadlocks."""
+        """Run query em batches com retry exponencial em deadlocks."""
         total = 0
         for i in range(0, len(rows), batch_size):
-            batch = rows[i : i + batch_size]
+            batch = rows[i: i + batch_size]
             for attempt in range(_MAX_RETRIES):
                 try:
                     self._run_batch_once(query, batch)
                     total += len(batch)
                     self._total_written += len(batch)
                     break
-                except TransientError:
+                except (TransientError, ServiceUnavailable) as e:
                     wait = 2 ** attempt
                     logger.warning(
-                        "Deadlock on batch %d, retry %d/%d in %ds",
+                        "Deadlock batch %d, retry %d/%d em %ds: %s",
                         i // batch_size,
                         attempt + 1,
                         _MAX_RETRIES,
                         wait,
+                        e,
                     )
                     time.sleep(wait)
+                except Exception as e:
+                    logger.error("Erro inesperado batch %d: %s — pulando", i // batch_size, e)
+                    break
             else:
                 logger.error(
-                    "Failed batch %d after %d retries, skipping",
+                    "Batch %d falhou após %d retries — pulando",
                     i // batch_size,
                     _MAX_RETRIES,
                 )
+
             if total > 0 and total % 100_000 == 0:
                 logger.info("  Progress: %d rows loaded", total)
         return total
@@ -86,15 +119,18 @@ class Neo4jBatchLoader:
         key_field: str,
     ) -> int:
         rows = [r for r in rows if r.get(key_field)]
+        if not rows:
+            return 0
+
         all_keys: set[str] = set()
         for r in rows:
             all_keys.update(r.keys())
         all_keys.discard(key_field)
         all_keys = {k for k in all_keys if _SAFE_KEY.match(k)}
-        props = ", ".join(
-            f"n.{k} = row.{k}" for k in sorted(all_keys)
-        ) if rows else ""
+
+        props = ", ".join(f"n.{k} = row.{k}" for k in sorted(all_keys)) if all_keys else ""
         set_clause = f"SET {props}" if props else ""
+
         query = (
             f"UNWIND $rows AS row "
             f"MERGE (n:{label} {{{key_field}: row.{key_field}}}) "
@@ -113,10 +149,14 @@ class Neo4jBatchLoader:
         properties: list[str] | None = None,
     ) -> int:
         rows = [r for r in rows if r.get("source_key") and r.get("target_key")]
+        if not rows:
+            return 0
+
         props = ""
         if properties:
             prop_str = ", ".join(f"r.{p} = row.{p}" for p in properties)
             props = f"SET {prop_str}"
+
         query = (
             f"UNWIND $rows AS row "
             f"MATCH (a:{source_label} {{{source_key}: row.source_key}}) "
