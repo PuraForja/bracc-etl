@@ -244,74 +244,77 @@ class CamaraPipeline(Pipeline):
                 expense_ids = {e["expense_id"] for e in new_expenses}
 
                 # Load Expenses
-                count = loader.load_nodes("Expense", new_expenses, key_field="expense_id")
-                logger.info("  Loaded %d Expense nodes", count)
-                total_expenses += count
+                with loader.open_session() as session:
 
-                # Load Deputies CPF
-                new_dep_cpf = [d for d in deputies_cpf if d["cpf"] not in seen_deputies]
-                seen_deputies.update(d["cpf"] for d in new_dep_cpf)
-                if new_dep_cpf:
-                    loader.load_nodes("Person", new_dep_cpf, key_field="cpf")
+                    count = loader.load_nodes("Expense", new_expenses, key_field="expense_id", session=session)
+                    logger.info("  Loaded %d Expense nodes", count)
+                    total_expenses += count
 
-                # Load Deputies ID (sem CPF)
-                new_dep_id = [d for d in deputies_id if d["deputy_id"] not in seen_dep_id]
-                seen_dep_id.update(d["deputy_id"] for d in new_dep_id)
-                if new_dep_id:
-                    query = (
-                        "UNWIND $rows AS row "
-                        "MERGE (p:Person {deputy_id: row.deputy_id}) "
-                        "SET p.name = row.name, p.uf = row.uf, p.partido = row.partido"
-                    )
-                    loader.run_query_with_retry(query, new_dep_id)
+                    # Load Deputies CPF
+                    new_dep_cpf = [d for d in deputies_cpf if d["cpf"] not in seen_deputies]
+                    seen_deputies.update(d["cpf"] for d in new_dep_cpf)
+                    if new_dep_cpf:
+                        loader.load_nodes("Person", new_dep_cpf, key_field="cpf", session=session)
 
-                # Load Suppliers CNPJ
-                new_sup_cnpj = [s for s in suppliers_cnpj if s["cnpj"] not in seen_suppliers]
-                seen_suppliers.update(s["cnpj"] for s in new_sup_cnpj)
-                if new_sup_cnpj:
-                    loader.load_nodes("Company", new_sup_cnpj, key_field="cnpj")
+                    # Load Deputies ID (sem CPF)
+                    new_dep_id = [d for d in deputies_id if d["deputy_id"] not in seen_dep_id]
+                    seen_dep_id.update(d["deputy_id"] for d in new_dep_id)
+                    if new_dep_id:
+                        query = (
+                            "UNWIND $rows AS row "
+                            "MERGE (p:Person {deputy_id: row.deputy_id}) "
+                            "SET p.name = row.name, p.uf = row.uf, p.partido = row.partido"
+                        )
+                        loader.run_query_with_retry(query, new_dep_id, session=session)
 
-                # Load Suppliers CPF
-                new_sup_cpf = [s for s in suppliers_cpf if s["cpf"] not in seen_suppliers]
-                seen_suppliers.update(s["cpf"] for s in new_sup_cpf)
-                if new_sup_cpf:
-                    loader.load_nodes("Person", new_sup_cpf, key_field="cpf")
+                    # Load Suppliers CNPJ
+                    new_sup_cnpj = [s for s in suppliers_cnpj if s["cnpj"] not in seen_suppliers]
+                    seen_suppliers.update(s["cnpj"] for s in new_sup_cnpj)
+                    if new_sup_cnpj:
+                        loader.load_nodes("Company", new_sup_cnpj, key_field="cnpj", session=session)
 
-                # GASTOU CPF
-                gastou_cpf_new = [r for r in gastou_cpf if r["target_key"] in expense_ids]
-                if gastou_cpf_new:
-                    loader.load_relationships(
-                        rel_type="GASTOU",
-                        rows=gastou_cpf_new,
-                        source_label="Person",
-                        source_key="cpf",
-                        target_label="Expense",
-                        target_key="expense_id",
-                    )
+                    # Load Suppliers CPF
+                    new_sup_cpf = [s for s in suppliers_cpf if s["cpf"] not in seen_suppliers]
+                    seen_suppliers.update(s["cpf"] for s in new_sup_cpf)
+                    if new_sup_cpf:
+                        loader.load_nodes("Person", new_sup_cpf, key_field="cpf", session=session)
 
-                # GASTOU deputy_id
-                gastou_id_new = [r for r in gastou_id if r["target_key"] in expense_ids]
-                if gastou_id_new:
-                    query = (
-                        "UNWIND $rows AS row "
-                        "MATCH (p:Person {deputy_id: row.deputy_id}) "
-                        "MATCH (e:Expense {expense_id: row.target_key}) "
-                        "MERGE (p)-[:GASTOU]->(e)"
-                    )
-                    loader.run_query_with_retry(query, gastou_id_new)
+                    # GASTOU CPF
+                    gastou_cpf_new = [r for r in gastou_cpf if r["target_key"] in expense_ids]
+                    if gastou_cpf_new:
+                        loader.load_relationships(
+                            rel_type="GASTOU",
+                            rows=gastou_cpf_new,
+                            source_label="Person",
+                            source_key="cpf",
+                            target_label="Expense",
+                            target_key="expense_id",
+                            session=session,
+                        )
 
-                # FORNECEU
-                forneceu_new = [r for r in forneceu if r["target_key"] in expense_ids]
-                if forneceu_new:
-                    query = (
-                        "UNWIND $rows AS row "
-                        "MATCH (e:Expense {expense_id: row.target_key}) "
-                        "OPTIONAL MATCH (c:Company {cnpj: row.source_key}) "
-                        "OPTIONAL MATCH (p:Person {cpf: row.source_key}) "
-                        "WITH e, coalesce(c, p) AS src WHERE src IS NOT NULL "
-                        "MERGE (src)-[:FORNECEU]->(e)"
-                    )
-                    loader.run_query_with_retry(query, forneceu_new)
+                    # GASTOU deputy_id
+                    gastou_id_new = [r for r in gastou_id if r["target_key"] in expense_ids]
+                    if gastou_id_new:
+                        query = (
+                            "UNWIND $rows AS row "
+                            "MATCH (p:Person {deputy_id: row.deputy_id}) "
+                            "MATCH (e:Expense {expense_id: row.target_key}) "
+                            "MERGE (p)-[:GASTOU]->(e)"
+                        )
+                        loader.run_query_with_retry(query, gastou_id_new, session=session)
+
+                    # FORNECEU
+                    forneceu_new = [r for r in forneceu if r["target_key"] in expense_ids]
+                    if forneceu_new:
+                        query = (
+                            "UNWIND $rows AS row "
+                            "MATCH (e:Expense {expense_id: row.target_key}) "
+                            "OPTIONAL MATCH (c:Company {cnpj: row.source_key}) "
+                            "OPTIONAL MATCH (p:Person {cpf: row.source_key}) "
+                            "WITH e, coalesce(c, p) AS src WHERE src IS NOT NULL "
+                            "MERGE (src)-[:FORNECEU]->(e)"
+                        )
+                        loader.run_query_with_retry(query, forneceu_new, session=session)
 
             logger.info("  ✅ %s concluído — total acumulado: %d expenses", f.name, total_expenses)
 
