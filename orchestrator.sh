@@ -324,13 +324,43 @@ run_download() {
 # ── IMPORTAÇÃO ───────────────────────────────────────────────────────────────
 run_import() {
     local fonte="$1"
+    local WATCHDOG_TIMEOUT=180  # segundos sem log → aviso
     log_info "Importando $fonte..."
     cd "$ETL_DIR"
+
+    # Roda o pipeline com output visível em tempo real E salva no log
     uv run bracc-etl run --source "$fonte" --neo4j-password "$NEO4J_PASSWORD" --data-dir "$DATA_DIR" 2>&1 | filter_output | tee -a "$LOG" &
     CURRENT_PID=$!
+
+    # Watchdog — monitora silêncio no log
+    (
+        last_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
+        last_change=$(date +%s)
+        while kill -0 $CURRENT_PID 2>/dev/null; do
+            sleep 15
+            cur_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
+            now=$(date +%s)
+            if [[ "$cur_size" -gt "$last_size" ]]; then
+                last_size=$cur_size
+                last_change=$now
+            else
+                elapsed=$(( now - last_change ))
+                if [[ $elapsed -ge $WATCHDOG_TIMEOUT ]]; then
+                    mins=$(( elapsed / 60 ))
+                    echo "  ⚠️  [$fonte] sem log há ${mins}min — processo pode ter travado (PID $CURRENT_PID)" | tee -a "$LOG"
+                    last_change=$now  # reseta para não spammar
+                fi
+            fi
+        done
+    ) &
+    WATCHDOG_PID=$!
+
     wait $CURRENT_PID
     local exit_code=$?
+    kill $WATCHDOG_PID 2>/dev/null
+    wait $WATCHDOG_PID 2>/dev/null
     CURRENT_PID=""
+
     if [[ $exit_code -eq 0 ]]; then
         mark_imported "$fonte"
         log_ok "Importação concluída: $fonte"
