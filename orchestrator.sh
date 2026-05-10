@@ -8,6 +8,7 @@ ETL_DIR="$ROOT/etl"
 DATA_DIR="$ROOT/data"
 LOG="$ROOT/pipeline_imports.log"
 NEO4J_PASSWORD="${NEO4J_PASSWORD:-changeme}"
+MODO_TESTE="${MODO_TESTE:-N}"  # Y = pula leitura Neo4j, uv sync e PNCP
 INSTALLED_FLAG="$ROOT/.installed"
 
 # ── MAPA fonte → label Neo4j ──────────────────────────────────────────────────
@@ -217,7 +218,7 @@ run_setup() {
     fi
     [[ $errors -gt 0 ]] && { log_err "$errors dependência(s) faltando"; exit 1; }
     log_info "Instalando dependências Python..."
-    cd "$ETL_DIR" && uv sync 2>&1 | filter_output | tee -a "$LOG"
+    [[ "$MODO_TESTE" == "Y" ]] || { cd "$ETL_DIR" && uv sync 2>&1 | filter_output | tee -a "$LOG"; }
     log_ok "Dependências instaladas"
     echo "installed: $(date '+%Y-%m-%d %H:%M:%S')" > "$INSTALLED_FLAG"
     log_blank
@@ -277,6 +278,7 @@ start_docker() {
 
 # ── PNCP ─────────────────────────────────────────────────────────────────────
 start_pncp_background() {
+    [[ "$MODO_TESTE" == "Y" ]] && { log_info "MODO_TESTE: pulando PNCP"; return 0; }
     log_banner "📥  PNCP — background"
     (
         while true; do
@@ -324,41 +326,82 @@ run_download() {
 # ── IMPORTAÇÃO ───────────────────────────────────────────────────────────────
 run_import() {
     local fonte="$1"
-    local WATCHDOG_TIMEOUT=180  # segundos sem log → aviso
+    local WATCHDOG_TIMEOUT=180
     log_info "Importando $fonte..."
     cd "$ETL_DIR"
 
-    # Roda o pipeline com output visível em tempo real E salva no log
-    uv run bracc-etl run --source "$fonte" --neo4j-password "$NEO4J_PASSWORD" --data-dir "$DATA_DIR" 2>&1 | filter_output | tee -a "$LOG" &
+    local PROGRESS_FILE="$ROOT/bracc_progress_${fonte}.tmp"
+    rm -f "$PROGRESS_FILE"
+
+    uv run bracc-etl run --source "$fonte" --neo4j-password "$NEO4J_PASSWORD" --data-dir "$DATA_DIR" >> "$PROGRESS_FILE" 2>&1 &
     CURRENT_PID=$!
 
-    # Watchdog — monitora silêncio no log
     (
-        last_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
+        frames=("\u280b" "\u2819" "\u2839" "\u2838" "\u283c" "\u2834" "\u2826" "\u2827" "\u2807" "\u280f")
+        fi=0
+        last_log_size=0
         last_change=$(date +%s)
+        warned=0
+        cur_file=""
+        total_files=0
+        cur_num=0
+
         while kill -0 $CURRENT_PID 2>/dev/null; do
-            sleep 15
-            cur_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
-            now=$(date +%s)
-            if [[ "$cur_size" -gt "$last_size" ]]; then
-                last_size=$cur_size
-                last_change=$now
-            else
-                elapsed=$(( now - last_change ))
-                if [[ $elapsed -ge $WATCHDOG_TIMEOUT ]]; then
-                    mins=$(( elapsed / 60 ))
-                    echo "  ⚠️  [$fonte] sem log há ${mins}min — processo pode ter travado (PID $CURRENT_PID)" | tee -a "$LOG"
-                    last_change=$now  # reseta para não spammar
+            if [[ -f "$PROGRESS_FILE" ]]; then
+                last_line=$(grep "Processando" "$PROGRESS_FILE" 2>/dev/null | tail -1)
+                if [[ -n "$last_line" ]]; then
+                    cur_num=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "^[0-9]+")
+                    total_files=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "[0-9]+$")
+                    cur_file=$(echo "$last_line" | grep -oE "[^ ]+\.csv" | tail -1)
                 fi
             fi
+
+            if [[ -n "$total_files" && "$total_files" -gt 0 && "$cur_num" -gt 0 ]]; then
+                pct=$(( cur_num * 100 / total_files ))
+                filled=$(( cur_num * 20 / total_files ))
+                empty=$(( 20 - filled ))
+                bar=""
+                for ((b=0; b<filled; b++)); do bar+="█"; done
+                for ((b=0; b<empty; b++)); do bar+="░"; done
+                printf "
+  [%s] %d/%d (%d%%) %s        " "$bar" "$cur_num" "$total_files" "$pct" "$cur_file"
+            else
+                printf "
+  aguardando $fonte...        "
+            fi
+
+            fi=$(( (fi + 1) % 10 ))
+
+            cur_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
+            now=$(date +%s)
+            if [[ "$cur_size" -gt "$last_log_size" ]]; then
+                last_log_size=$cur_size
+                last_change=$now
+                warned=0
+            else
+                elapsed=$(( now - last_change ))
+                if [[ $elapsed -ge $WATCHDOG_TIMEOUT && $warned -eq 0 ]]; then
+                    mins=$(( elapsed / 60 ))
+                    printf "
+  ⚠️  [$fonte] sem atividade ha ${mins}min — pode ter travado
+"
+                    warned=1
+                fi
+            fi
+
+            sleep 0.2
         done
+        printf "
+%80s
+" ""
+        rm -f "$PROGRESS_FILE"
     ) &
-    WATCHDOG_PID=$!
+    SPINNER_PID=$!
 
     wait $CURRENT_PID
     local exit_code=$?
-    kill $WATCHDOG_PID 2>/dev/null
-    wait $WATCHDOG_PID 2>/dev/null
+    kill $SPINNER_PID 2>/dev/null
+    wait $SPINNER_PID 2>/dev/null
     CURRENT_PID=""
 
     if [[ $exit_code -eq 0 ]]; then
@@ -422,7 +465,7 @@ fi
 start_docker
 
 # Lê Neo4j e sincroniza .installed antes de qualquer fila
-sync_neo4j_to_installed
+[[ "$MODO_TESTE" == "Y" ]] || sync_neo4j_to_installed
 
 start_pncp_background
 
