@@ -55,8 +55,6 @@ LABEL_MAP[world_bank]="InternationalSanction"
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
 SKIP=(
     pncp            # roda em background separado
-    senado          # dando problema — aguardar fix
-    camara          # importação travando — aguardar fix do colega
 )
 
 # ── FILA PADRÃO ───────────────────────────────────────────────────────────────
