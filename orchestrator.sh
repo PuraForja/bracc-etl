@@ -333,76 +333,64 @@ run_import() {
     local PROGRESS_FILE="$ROOT/bracc_progress_${fonte}.tmp"
     rm -f "$PROGRESS_FILE"
 
+    # Pipeline em background
     uv run bracc-etl run --source "$fonte" --neo4j-password "$NEO4J_PASSWORD" --data-dir "$DATA_DIR" >> "$PROGRESS_FILE" 2>&1 &
     CURRENT_PID=$!
 
-    (
-        frames=("\u280b" "\u2819" "\u2839" "\u2838" "\u283c" "\u2834" "\u2826" "\u2827" "\u2807" "\u280f")
-        fi=0
-        last_log_size=0
-        last_change=$(date +%s)
-        warned=0
-        cur_file=""
-        total_files=0
-        cur_num=0
-
-        while kill -0 $CURRENT_PID 2>/dev/null; do
-            if [[ -f "$PROGRESS_FILE" ]]; then
-                last_line=$(grep "Processando" "$PROGRESS_FILE" 2>/dev/null | tail -1)
-                if [[ -n "$last_line" ]]; then
-                    cur_num=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "^[0-9]+")
-                    total_files=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "[0-9]+$")
-                    cur_file=$(echo "$last_line" | grep -oE "[^ ]+\.csv" | tail -1)
+    # Spinner — imprime só quando muda de arquivo
+    local last_shown=""
+    local last_log_size=0
+    local last_change
+    last_change=$(date +%s)
+    local warned=0
+    while kill -0 $CURRENT_PID 2>/dev/null; do
+        if [[ -f "$PROGRESS_FILE" ]]; then
+            local last_line
+            last_line=$(grep "Processando" "$PROGRESS_FILE" 2>/dev/null | tail -1)
+            if [[ -n "$last_line" && "$last_line" != "$last_shown" ]]; then
+                cur_num=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "^[0-9]+")
+                total_files=$(echo "$last_line" | grep -oE "[0-9]+/[0-9]+" | grep -oE "[0-9]+$")
+                cur_file=$(echo "$last_line" | grep -oE "[^ ]+\.csv" | tail -1)
+                if [[ -n "$total_files" && "$total_files" -gt 0 ]]; then
+                    local pct=$(( cur_num * 100 / total_files ))
+                    local filled=$(( cur_num * 20 / total_files ))
+                    local empty=$(( 20 - filled ))
+                    local bar=""
+                    for ((b=0; b<filled; b++)); do bar+="█"; done
+                    for ((b=0; b<empty; b++)); do bar+="░"; done
+                    echo "  [$bar] $cur_num/$total_files ($pct%) $cur_file"
                 fi
+                last_shown="$last_line"
             fi
+        fi
 
-            if [[ -n "$total_files" && "$total_files" -gt 0 && "$cur_num" -gt 0 ]]; then
-                pct=$(( cur_num * 100 / total_files ))
-                filled=$(( cur_num * 20 / total_files ))
-                empty=$(( 20 - filled ))
-                bar=""
-                for ((b=0; b<filled; b++)); do bar+="█"; done
-                for ((b=0; b<empty; b++)); do bar+="░"; done
-                printf "
-  [%s] %d/%d (%d%%) %s        " "$bar" "$cur_num" "$total_files" "$pct" "$cur_file"
-            else
-                printf "
-  aguardando $fonte...        "
+        # Watchdog
+        local cur_size
+        cur_size=$(wc -c < "$PROGRESS_FILE" 2>/dev/null || echo 0)
+        local now=$(date +%s)
+        if [[ "$cur_size" -gt "$last_log_size" ]]; then
+            last_log_size=$cur_size
+            last_change=$now
+            warned=0
+        else
+            local elapsed=$(( now - last_change ))
+            if [[ $elapsed -ge $WATCHDOG_TIMEOUT && $warned -eq 0 ]]; then
+                local mins=$(( elapsed / 60 ))
+                echo "  ⚠️  [$fonte] sem atividade ha ${mins}min — pode ter travado"
+                warned=1
             fi
+        fi
 
-            fi=$(( (fi + 1) % 10 ))
+        sleep 1
+    done
 
-            cur_size=$(wc -c < "$LOG" 2>/dev/null || echo 0)
-            now=$(date +%s)
-            if [[ "$cur_size" -gt "$last_log_size" ]]; then
-                last_log_size=$cur_size
-                last_change=$now
-                warned=0
-            else
-                elapsed=$(( now - last_change ))
-                if [[ $elapsed -ge $WATCHDOG_TIMEOUT && $warned -eq 0 ]]; then
-                    mins=$(( elapsed / 60 ))
-                    printf "
-  ⚠️  [$fonte] sem atividade ha ${mins}min — pode ter travado
-"
-                    warned=1
-                fi
-            fi
-
-            sleep 0.2
-        done
-        printf "
-%80s
-" ""
-        rm -f "$PROGRESS_FILE"
-    ) &
-    SPINNER_PID=$!
-
-    wait $CURRENT_PID
+        wait $CURRENT_PID
     local exit_code=$?
-    kill $SPINNER_PID 2>/dev/null
-    wait $SPINNER_PID 2>/dev/null
     CURRENT_PID=""
+
+    # Copia progress file para o log principal
+    cat "$PROGRESS_FILE" >> "$LOG" 2>/dev/null
+    rm -f "$PROGRESS_FILE"
 
     if [[ $exit_code -eq 0 ]]; then
         mark_imported "$fonte"
