@@ -31,7 +31,9 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
             if response.status_code == 416:
                 logger.info("Already complete: %s", dest.name)
                 if partial.exists():
-                    partial.rename(dest)
+                    if dest.exists():
+                    dest.unlink()
+                partial.rename(dest)
                 return True
 
             response.raise_for_status()
@@ -56,7 +58,9 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
                     f.write(chunk)
                     downloaded += len(chunk)
 
-            partial.rename(dest)
+            if dest.exists():
+                    dest.unlink()
+                partial.rename(dest)
             logger.info("Downloaded: %s (%.1f MB)", dest.name, downloaded / 1e6)
             return True
 
