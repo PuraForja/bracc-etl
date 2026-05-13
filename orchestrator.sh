@@ -52,6 +52,8 @@ LABEL_MAP[tse_filiados]="Person"
 LABEL_MAP[un_sanctions]="InternationalSanction"
 LABEL_MAP[viagens]="GovTravel"
 LABEL_MAP[world_bank]="InternationalSanction"
+# ── AMAZONAS ──────────────────────────────────────────────────────────────────
+LABEL_MAP[transparencia_am]="Person"
 
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
 SKIP=(
@@ -85,6 +87,10 @@ DEFAULT_QUEUE=(
     tse
     viagens
     cnpj
+    # ── AMAZONAS ────────────────────────────────────────────────────────────────
+    # Fontes específicas do estado do Amazonas
+    # Para adicionar novo estado: copiar bloco abaixo com o nome do estado
+    transparencia_am
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -296,6 +302,12 @@ run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
+    # transparencia_am salva em subpastas por órgão — verificação especial
+    if [[ "$fonte" == "transparencia_am" ]]; then
+        local csv_count
+        csv_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
+        [[ "$csv_count" -gt 0 ]] && { log_skip "data/$fonte já existe ($csv_count CSVs) — pulando download"; return 0; }
+    fi
     if [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
         log_skip "data/$fonte já existe — pulando download"
         return 0
