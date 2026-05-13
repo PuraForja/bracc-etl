@@ -35,7 +35,7 @@ ps aux | grep transparencia_am | grep -v grep
 # 7. Progresso PNCP
 tail -3 ~/Downloads/br-acc-novo/download_pncp.log
 # 8. O que falta
-cat ~/Downloads/br-acc-novo/docs/CHANGELOG_TECNICO.md | grep "\[ \]"
+cat ~/Downloads/br-acc-novo/docs/CHANGELOG.md | grep "\[ \]"
 ```
 
 ---
