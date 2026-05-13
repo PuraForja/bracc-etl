@@ -58,6 +58,7 @@ LABEL_MAP[transparencia_am]="Person"
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
 SKIP=(
     pncp            # roda em background separado
+    transparencia_am  # roda em background separado
 )
 
 # ── FILA PADRÃO ───────────────────────────────────────────────────────────────
@@ -297,6 +298,21 @@ start_pncp_background() {
     log_ok "PNCP em background (PID $!)"
 }
 
+# ── TRANSPARÊNCIA AM ─────────────────────────────────────────────────────────
+start_transparencia_am_background() {
+    [[ "$MODO_TESTE" == "Y" ]] && { log_info "MODO_TESTE: pulando transparencia_am"; return 0; }
+    log_banner "📥  TRANSPARÊNCIA AM — background"
+    (
+        while true; do
+            cd "$ETL_DIR"
+            uv run python scripts/download_transparencia_am.py --output-dir "../data/transparencia_am"
+            echo "[TRANSPARENCIA_AM] reiniciando em 60s..."
+            sleep 60
+        done >> "$ROOT/transparencia_am.log" 2>&1
+    ) &
+    log_ok "TRANSPARÊNCIA AM em background (PID $!)"
+}
+
 # ── DOWNLOAD ─────────────────────────────────────────────────────────────────
 run_download() {
     local fonte="$1"
@@ -468,6 +484,7 @@ start_docker
 [[ "$MODO_TESTE" == "Y" ]] || sync_neo4j_to_installed
 
 start_pncp_background
+start_transparencia_am_background
 
 if [[ ${#FORCE_FONTES[@]} -gt 0 ]] && [[ ${#CUSTOM_QUEUE[@]} -eq 0 ]]; then
     QUEUE=("${FORCE_FONTES[@]}")
