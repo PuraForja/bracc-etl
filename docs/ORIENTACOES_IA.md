@@ -18,7 +18,7 @@
 ## REGRA #1 — LEIA O CHANGELOG ANTES DE QUALQUER COISA
 
 ```bash
-cat ~/Downloads/br-acc-novo/docs/CHANGELOG_TECNICO.md
+cat ~/Downloads/br-acc-novo/docs/CHANGELOG.md
 ```
 
 **Sempre** leia este arquivo antes de sugerir qualquer correção de código.
@@ -116,7 +116,7 @@ Se morreu: relance a fila a partir da fonte que travou.
 Toda vez que alterar um arquivo `.py`:
 1. Crie backup: `cp ARQUIVO.py ARQUIVO.py.bak`
 2. Faça a alteração
-3. Atualize `docs/CHANGELOG_TECNICO.md` com data, arquivo, problema, solução
+3. Atualize `docs/CHANGELOG.md` com data, arquivo, problema, solução
 4. Lembre Rolim de commitar no GitHub
 
 ---
@@ -125,7 +125,7 @@ Toda vez que alterar um arquivo `.py`:
 
 Faça estes 3 passos obrigatoriamente:
 1. Gere novo `CONTEXTO_PROJETO_AM_vXX_MASTER.md` (incrementar versão)
-2. Atualize `CHANGELOG_TECNICO.md` se houve alterações de código
+2. Atualize `CHANGELOG.md` se houve alterações de código
 3. Mande comando para commitar os 4 arquivos no GitHub:
 
 ```bash
@@ -157,7 +157,7 @@ br-acc-novo/
 ├── docker-compose.yml
 ├── docs/                          ← 4 arquivos de referência ficam aqui
 │   ├── CONTEXTO_PROJETO_AM_vXX_MASTER.md
-│   ├── CHANGELOG_TECNICO.md
+│   ├── CHANGELOG.md
 │   ├── CORRECOES_SCRIPTS_DOWNLOAD.md
 │   └── URLS_CORRETAS.md
 ├── etl/
@@ -190,3 +190,14 @@ cd ~/Downloads/br-acc-novo && docker compose up -d
 
 *Criado em 01/05/2026*
 *Atualizar este arquivo se novas regras forem alinhadas com o Rolim*
+
+
+---
+
+## CHANGELOG — REGRA OBRIGATÓRIA
+
+O único changelog oficial é: `docs/CHANGELOG.md`
+
+- `etl/scripts/CHANGELOG.md` foi descontinuado — não atualizar
+- Toda IA DEVE ler `docs/CHANGELOG.md` antes de qualquer alteração
+- Toda IA DEVE atualizar `docs/CHANGELOG.md` após qualquer alteração
