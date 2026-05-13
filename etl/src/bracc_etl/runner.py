@@ -1,9 +1,7 @@
 import logging
 import os
-
 import click
 from neo4j import GraphDatabase
-
 from bracc_etl.linking_hooks import run_post_load_hooks
 from bracc_etl.pipelines.bcb import BcbPipeline
 from bracc_etl.pipelines.bndes import BndesPipeline
@@ -46,17 +44,18 @@ from bracc_etl.pipelines.tcu import TcuPipeline
 from bracc_etl.pipelines.tesouro_emendas import TesouroEmendasPipeline
 from bracc_etl.pipelines.transferegov import TransferegovPipeline
 from bracc_etl.pipelines.transparencia import TransparenciaPipeline
+from bracc_etl.pipelines.transparencia_am import TransparenciaAmPipeline
 from bracc_etl.pipelines.tse import TSEPipeline
 from bracc_etl.pipelines.tse_bens import TseBensPipeline
 from bracc_etl.pipelines.tse_filiados import TseFiliadosPipeline
 from bracc_etl.pipelines.un_sanctions import UnSanctionsPipeline
 from bracc_etl.pipelines.viagens import ViagensPipeline
 from bracc_etl.pipelines.world_bank import WorldBankPipeline
-
 PIPELINES: dict[str, type] = {
     "cnpj": CNPJPipeline,
     "tse": TSEPipeline,
     "transparencia": TransparenciaPipeline,
+    "transparencia_am": TransparenciaAmPipeline,
     "sanctions": SanctionsPipeline,
     "pep_cgu": PepCguPipeline,
     "bndes": BndesPipeline,
@@ -102,14 +101,10 @@ PIPELINES: dict[str, type] = {
     "tesouro_emendas": TesouroEmendasPipeline,
     "stj_dados_abertos": StjPipeline,
 }
-
-
 @click.group()
 def cli() -> None:
     """BR-ACC ETL — Data ingestion pipelines for Brazilian public data."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
-
 @cli.command()
 @click.option("--source", required=True, help="Pipeline name (see 'sources' command)")
 @click.option("--neo4j-uri", default="bolt://localhost:7687", help="Neo4j URI")
@@ -145,11 +140,9 @@ def run(
 ) -> None:
     """Run an ETL pipeline."""
     os.environ["NEO4J_DATABASE"] = neo4j_database
-
     if source not in PIPELINES:
         available = ", ".join(PIPELINES.keys())
         raise click.ClickException(f"Unknown source: {source}. Available: {available}")
-
     driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     try:
         pipeline_cls = PIPELINES[source]
@@ -160,12 +153,10 @@ def run(
             chunk_size=chunk_size,
             history=history,
         )
-
         if streaming and hasattr(pipeline, "run_streaming"):
             pipeline.run_streaming(start_phase=start_phase)
         else:
             pipeline.run()
-
         run_post_load_hooks(
             driver=driver,
             source=source,
@@ -174,18 +165,13 @@ def run(
         )
     finally:
         driver.close()
-
-
 def _resolve_rf_release_inline(year_month: str | None = None) -> str:
     """Resolve Receita Federal CNPJ release URL.
-
     Tries the current arquivos.receitafederal.gov.br monthly archive path first,
     then Nextcloud shares, then older dadosabertos fallbacks.
     """
     from datetime import UTC, datetime
-
     import httpx
-
     now = datetime.now(UTC)
     if year_month is not None:
         candidates = [year_month]
@@ -198,7 +184,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
                 cursor = cursor.replace(year=cursor.year - 1, month=12)
             else:
                 cursor = cursor.replace(month=cursor.month - 1)
-
     # --- Current archive path (authoritative monthly releases) ---
     archive_base = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{ym}/"
     for ym in candidates:
@@ -209,7 +194,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
                 return url
         except httpx.HTTPError:
             pass
-
     # --- Nextcloud (legacy interim path) ---
     nextcloud_dl = "https://arquivos.receitafederal.gov.br/s/{token}/download?path=%2F&files="
     tokens: list[str] = []
@@ -217,7 +201,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
     if env_token:
         tokens.append(env_token)
     tokens.extend(["gn672Ad4CF8N6TK", "YggdBLfdninEJX9"])
-
     for token in tokens:
         share_url = f"https://arquivos.receitafederal.gov.br/s/{token}"
         try:
@@ -226,7 +209,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
                 return nextcloud_dl.format(token=token)
         except httpx.HTTPError:
             pass
-
     # --- Mirror Casa dos Dados (adicionada 2026) ---
     casadosdados_base = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/2026-04-12/"
     try:
@@ -246,7 +228,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
     # --- Legacy dadosabertos (fallback) ---
     new_base = "https://dadosabertos.rfb.gov.br/CNPJ/dados_abertos_cnpj/{ym}/"
     legacy_url = "https://dadosabertos.rfb.gov.br/CNPJ/"
-
     for ym in candidates:
         url = new_base.format(ym=ym)
         try:
@@ -255,19 +236,15 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
                 return url
         except httpx.HTTPError:
             pass
-
     try:
         resp = httpx.head(legacy_url, follow_redirects=True, timeout=30)
         if resp.status_code < 400:
             return legacy_url
     except httpx.HTTPError:
         pass
-
     tried = ", ".join(candidates)
     msg = f"Could not resolve CNPJ release. Tried Nextcloud tokens, months [{tried}], and legacy."
     raise RuntimeError(msg)
-
-
 @cli.command()
 @click.option("--output-dir", default="./data/cnpj", help="Output directory")
 @click.option("--files", type=int, default=10, help="Number of files per type (0-9)")
@@ -277,18 +254,13 @@ def download(output_dir: str, files: int, skip_existing: bool, release: str | No
     """Download CNPJ data from Receita Federal."""
     import zipfile
     from pathlib import Path
-
     import httpx
-
     logger = logging.getLogger(__name__)
-
     base_url = _resolve_rf_release_inline(release)
     logger.info("Using CNPJ release URL: %s", base_url)
     file_types = ["Empresas", "Socios", "Estabelecimentos"]
-
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-
     for file_type in file_types:
         for i in range(min(files, 10)):
             filename = f"{file_type}{i}.zip"
@@ -298,7 +270,6 @@ def download(output_dir: str, files: int, skip_existing: bool, release: str | No
                 if skip_existing and dest.exists():
                     logger.info("Skipping (exists): %s", dest.name)
                     continue
-
                 logger.info("Downloading %s...", url)
                 with httpx.stream("GET", url, follow_redirects=True, timeout=300) as response:
                     response.raise_for_status()
@@ -306,7 +277,6 @@ def download(output_dir: str, files: int, skip_existing: bool, release: str | No
                         for chunk in response.iter_bytes(chunk_size=8192):
                             f.write(chunk)
                 logger.info("Downloaded: %s", dest.name)
-
                 logger.info("Extracting %s...", dest.name)
                 with zipfile.ZipFile(dest, "r") as zf:
                     # Path traversal guard
@@ -336,8 +306,6 @@ def download(output_dir: str, files: int, skip_existing: bool, release: str | No
                     zf.extractall(out)
             except httpx.HTTPError:
                 logger.warning("Failed to download %s (may not exist)", filename)
-
-
 @cli.command()
 @click.option("--status", "show_status", is_flag=True, help="Show ingestion status from Neo4j")
 @click.option("--neo4j-uri", default="bolt://localhost:7687", help="Neo4j URI")
@@ -350,14 +318,12 @@ def sources(show_status: bool, neo4j_uri: str, neo4j_user: str, neo4j_password: 
         for name in sorted(PIPELINES):
             click.echo(f"  {name}")
         return
-
     if not neo4j_password:
         neo4j_password = os.environ.get("NEO4J_PASSWORD", "")
     if not neo4j_password:
         raise click.ClickException(
             "--neo4j-password or NEO4J_PASSWORD env var required for --status"
         )
-
     driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     try:
         with driver.session() as session:
@@ -368,13 +334,11 @@ def sources(show_status: bool, neo4j_uri: str, neo4j_user: str, neo4j_password: 
                 "RETURN latest ORDER BY sid"
             )
             runs = {r["latest"]["source_id"]: dict(r["latest"]) for r in result}
-
         click.echo(
             f"{'Source':<20} {'Status':<15} {'Rows In':>10} {'Loaded':>10} "
             f"{'Started':<20} {'Finished':<20}"
         )
         click.echo("-" * 100)
-
         for name in sorted(PIPELINES):
             run = runs.get(name, {})
             click.echo(
@@ -387,7 +351,5 @@ def sources(show_status: bool, neo4j_uri: str, neo4j_user: str, neo4j_password: 
             )
     finally:
         driver.close()
-
-
 if __name__ == "__main__":
     cli()
