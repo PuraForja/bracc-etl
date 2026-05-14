@@ -281,7 +281,10 @@ run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    if [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
+    local INCREMENTAL_SOURCES=("transparencia_am")
+    local is_incremental=0
+    for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
+    if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
         local file_count
         file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
         log_skip "data/$fonte já existe ($file_count arquivos) — pulando download"
