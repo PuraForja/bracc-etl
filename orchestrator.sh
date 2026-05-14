@@ -57,8 +57,8 @@ LABEL_MAP[world_bank]="InternationalSanction"
 # ── AMAZONAS ──────────────────────────────────────────────────────────────────
 LABEL_MAP[transparencia_am]="Person"
 LABEL_MAP[ibama_am]="Sanction"
-LABEL_MAP[inpe_prodes]="Sanction"
-LABEL_MAP[sicar]="Contract"
+LABEL_MAP[inpe_prodes]="Deforestation"
+LABEL_MAP[sicar]="RuralProperty"
 LABEL_MAP[antaq]="Contract"
 
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
@@ -281,20 +281,48 @@ run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    if [[ "$fonte" == "transparencia_am" ]]; then
-        local csv_count
-        csv_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
-        [[ "$csv_count" -gt 0 ]] && { log_skip "data/$fonte já existe ($csv_count CSVs) — pulando download"; return 0; }
-    fi
     if [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
-        log_skip "data/$fonte já existe — pulando download"; return 0
+        local file_count
+        file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
+        log_skip "data/$fonte já existe ($file_count arquivos) — pulando download"
+        return 0
     fi
     log_info "Baixando $fonte..."
     cd "$ETL_DIR"
-    uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" 2>&1 | filter_output | tee -a "$LOG" &
-    CURRENT_PID=$!; wait $CURRENT_PID; local exit_code=$?; CURRENT_PID=""
+    local PROGRESS_FILE="$ROOT/bracc_download_${fonte}.tmp"
+    rm -f "$PROGRESS_FILE"
+    uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
+    CURRENT_PID=$!
+    local last_shown="" last_log_size=0 last_change warned=0
+    last_change=$(date +%s)
+    while kill -0 $CURRENT_PID 2>/dev/null; do
+        if [[ -f "$PROGRESS_FILE" ]]; then
+            local last_line
+            last_line=$(tail -1 "$PROGRESS_FILE" 2>/dev/null)
+            if [[ -n "$last_line" && "$last_line" != "$last_shown" ]]; then
+                echo "  |  $last_line" | tee -a "$LOG"
+                last_shown="$last_line"
+            fi
+        fi
+        local cur_size now elapsed
+        cur_size=$(wc -c < "$PROGRESS_FILE" 2>/dev/null || echo 0)
+        now=$(date +%s)
+        if [[ "$cur_size" -gt "$last_log_size" ]]; then
+            last_log_size=$cur_size; last_change=$now; warned=0
+        else
+            elapsed=$(( now - last_change ))
+            if [[ $elapsed -ge 180 && $warned -eq 0 ]]; then
+                echo "  ⚠️  [$fonte] download sem atividade ha $(( elapsed / 60 ))min — pode ter travado"
+                warned=1
+            fi
+        fi
+        sleep 1
+    done
+    wait $CURRENT_PID; local exit_code=$?; CURRENT_PID=""
+    cat "$PROGRESS_FILE" >> "$LOG" 2>/dev/null
+    rm -f "$PROGRESS_FILE"
     local file_count=0
-    file_count=$(ls -A "$DATA_DIR/$fonte" 2>/dev/null | wc -l)
+    file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
     if [[ $exit_code -eq 0 ]] && [[ "$file_count" -gt 0 ]]; then
         log_ok "Download concluído: $fonte ($file_count arquivo(s))"
     elif [[ $exit_code -eq 0 ]] && [[ "$file_count" -eq 0 ]]; then

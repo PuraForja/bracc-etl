@@ -32,7 +32,7 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
                 logger.info("Already complete: %s", dest.name)
                 if partial.exists():
                     if dest.exists():
-                    dest.unlink()
+                        dest.unlink()
                 partial.rename(dest)
                 return True
 
@@ -59,8 +59,8 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
                     downloaded += len(chunk)
 
             if dest.exists():
-                    dest.unlink()
-                partial.rename(dest)
+                dest.unlink()
+            partial.rename(dest)
             logger.info("Downloaded: %s (%.1f MB)", dest.name, downloaded / 1e6)
             return True
 
