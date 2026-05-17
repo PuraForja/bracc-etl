@@ -92,3 +92,46 @@ bash orchestrator.sh --check-links
 [FAIL] pncp         https://pncp.gov.br/... → timeout
 [FAIL] transparencia_am → 403 Forbidden
 [OK]   opensanctions ...
+---
+### PENDENCIA Entity Resolution AM Clusters Desconectados
+Registrado em: 17/05/2026
+Prioridade: Alta
+
+PROBLEMA:
+Dois clusters desconectados no grafo:
+- Cluster A CNPJ/CPF: Company Partner Contract Sanction Election GovTravel
+- Cluster B nome: GovEmployee 10.269M servidores AM sem CPF no portal estadual
+
+FONTES PESQUISADAS PARA CPF - TODAS FALHARAM:
+- Portal Transparencia Federal: 403
+- API CGU: requer Gov.br
+- Brasil.io: requer autenticacao
+- CAGED FTP: sem CPF individual
+- CNES FTP: CPF criptografado por LGPD
+
+CAMINHOS NAO EXPLORADOS:
+1. DOE-AM via OCR - portarias tem CPF parcial maior ROI
+2. Conselhos CRM COREN CREA OAB - nao investigados
+3. TSE doadores x GovEmployee - dados no banco cruzamento pendente
+4. CNES CNS como ponte parcial
+
+CNES MAPEADO:
+FTP: ftp://ftp.datasus.gov.br/cnes/
+Arquivos: PROFISSIONAIS_BRASIL_AM_YYYYMM.ZIP e SCNES_ARQUIVOS_AM_YYYYMM.ZIP
+Em claro: CNS + CBO + vinculo + municipio
+CPF: criptografado por LGPD
+Pendente: download_cnes_am.py + pipeline importacao
+
+INVESTIGACOES POSSIVEIS COM CNS:
+LARANJA: Servidor assina procedimentos em clinica X. Clinica contratada pela SES. Socio tem mesmo nome. Score alto. Laranja sem CPF.
+FANTASMA: Servidor recebe salario mas CNS nunca aparece no SIA/SIH. Nao trabalha.
+DUPLO VINCULO: CNS em dois estabelecimentos no mesmo horario. Portaria 134.
+DIRECIONAMENTO: Medico assina AIHs para empresa X. Empresa contratada pela SES. Socio com mesmo nome.
+NEPOTISMO: Mesmo sobrenome raro + mesma lotacao + admissao proxima. Cruza TSE.
+SUPERFATURAMENTO: Procedimento caro assinado por CBO incompativel.
+
+ARQUITETURA SUGERIDA IA4:
+No intermediario (:Identity) com (:SourceRecord)-[:REPRESENTS {score}]->(:Identity)
+score > 0.95: auto-link
+0.80 a 0.95: revisao manual
+menor 0.80: apenas sugestao
