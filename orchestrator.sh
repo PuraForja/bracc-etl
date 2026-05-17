@@ -209,6 +209,21 @@ sync_neo4j_to_installed() {
     log_blank
 }
 
+
+setup_neo4j_indexes() {
+    log_info "Criando indices Neo4j obrigatorios..."
+    docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "
+CREATE INDEX expense_id IF NOT EXISTS FOR (n:Expense) ON (n.expense_id);
+CREATE INDEX person_cpf IF NOT EXISTS FOR (n:Person) ON (n.cpf);
+CREATE INDEX person_person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id);
+CREATE INDEX company_cnpj IF NOT EXISTS FOR (n:Company) ON (n.cnpj);
+CREATE INDEX health_cnes IF NOT EXISTS FOR (n:Health) ON (n.cnes_code);
+CREATE INDEX finance_id IF NOT EXISTS FOR (n:MunicipalFinance) ON (n.finance_id);
+CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id)
+" 2>&1 | filter_output | tee -a "$LOG"
+    log_ok "Indices Neo4j criados"
+}
+
 run_setup() {
     log_banner "🔧  SETUP INICIAL"
     local errors=0
@@ -224,6 +239,7 @@ run_setup() {
     log_info "Instalando dependências Python..."
     [[ "$MODO_TESTE" == "Y" ]] || { cd "$ETL_DIR" && uv sync 2>&1 | filter_output | tee -a "$LOG"; }
     log_ok "Dependências instaladas"
+    setup_neo4j_indexes
     echo "installed: $(date '+%Y-%m-%d %H:%M:%S')" > "$INSTALLED_FLAG"
     log_blank
 }
