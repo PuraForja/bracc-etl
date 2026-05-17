@@ -479,3 +479,46 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 **Comando:** SHOW INDEXES YIELD name, labelsOrTypes, properties WHERE labelsOrTypes = ['Person']
 **Se sem indice:** CREATE INDEX person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id)
 **Outros problemas no codigo:** apply(sha256) em emp_id e person_id — lento mas nao trava
+
+
+## 2026-05-17 — Entity Resolution AM + transparencia_am concluída
+
+### [17/05/2026] — transparencia_am — importação completa ✅
+**Resultado:** 10.269.641 GovEmployee nodes | 152.856 servidores únicos AM
+**Duração:** ~3h30 (03:48 → 07:13)
+**Fix decisivo:** person_person_id sem índice → full scan em 2.6M nodes (travava)
+**Fix adicional:** apply(sha256) → list comprehension (eliminado vazamento memória)
+
+### [17/05/2026] — SETUP_INDICES.md + setup_neo4j_indexes() — feat ✅
+**Arquivo criado:** docs/SETUP_INDICES.md — lista todos os índices obrigatórios com motivo
+**Orchestrator:** função setup_neo4j_indexes() cria índices automaticamente na primeira execução
+**Índices:** expense_id, person_cpf, person_person_id, company_cnpj, health_cnes, finance_id, gov_employee_id
+
+### [17/05/2026] — Entity Resolution AM — análise e testes
+**Problema:** transparencia_am não tem CPF — 152.856 servidores sem identificador único
+**Testes realizados:**
+- TSE: 10.030 matches únicos (6.6% dos servidores) — confiança ~95%
+- Partner (sócios CNPJ): 18.857 matches únicos — cobertura maior
+- Combinado estimado: ~25-28k únicos (~18% dos servidores)
+**API transparencia.am.gov.br/api/servidores — confirmado inexistente (inventada por IA)**
+**Melhor âncora identificada:** Portal Transparência Federal — CSVs com CPF+nome+UF_EXERCICIO
+**URL:** portaldatransparencia.gov.br/download-de-dados/servidores (requer captcha)
+**Próximo passo:** criar download_servidores_federais.py filtrando UF=AM
+
+### [17/05/2026] — PENDENCIAS_FEATURES.md — atualizado ✅
+**Feature 3:** Alerta de confiança no frontend para dados probabilísticos
+**Feature 4:** Entity Resolution AM — pipeline completo documentado
+
+### [17/05/2026] — transparencia_am.py — filtro por órgão — feat ✅
+**Variável:** TRANSPARENCIA_AM_ORGAO=SEFAZ — filtra só um órgão para teste
+**Uso:** TRANSPARENCIA_AM_ORGAO=FEH uv run bracc-etl run --source transparencia_am ...
+
+## PENDÊNCIAS ATUAIS (17/05/2026)
+[ ] Entity Resolution AM — criar link_amazonas() no orchestrator
+[ ] Servidores federais AM — criar download com UF_EXERCICIO=AM (captcha a resolver)
+[ ] PNCP — download em andamento, importar quando 100%
+[ ] Fix sessão única — pipelines pendentes (senado_cpis, cnpj, etc.)
+[ ] Backup Neo4j — URGENTE (último: 09/05)
+[ ] Bug frontend — grafo vazio para Person nodes
+[ ] SOCIO_DE incompletos — 18.7M vs 26.8M
+[ ] BigQuery (rais, dou, stf, mides) — após credencial GCP
