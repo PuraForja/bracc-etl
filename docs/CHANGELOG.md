@@ -470,3 +470,12 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 **Status:** pipeline ainda morre silenciosamente — investigacao continua
 **Suspeita atual:** faulthandler + SHOW TRANSACTIONS para diagnostico
 **GovEmployee no banco:** 112.590 (parcial)
+
+### [16-17/05/2026] — transparencia_am — debug travamento
+**Descoberta:** processo trava dentro do _process_csv entre sessao aberta e conclusao
+**Confirmado via teste A/B/C/D/E/F:** trava apos E (sessao aberta) — nunca chega no F
+**Suspeita atual:** load_nodes Person sem indice em person_id — full scan em 2.6M nodes
+**Proximo passo:** verificar indice Person.person_id e criar se nao existir
+**Comando:** SHOW INDEXES YIELD name, labelsOrTypes, properties WHERE labelsOrTypes = ['Person']
+**Se sem indice:** CREATE INDEX person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id)
+**Outros problemas no codigo:** apply(sha256) em emp_id e person_id — lento mas nao trava
