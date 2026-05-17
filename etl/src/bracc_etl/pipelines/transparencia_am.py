@@ -28,6 +28,9 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+import faulthandler
+import os
+faulthandler.enable()
 from bracc_etl.base import Pipeline
 from bracc_etl.loader import Neo4jBatchLoader
 from bracc_etl.transforms import normalize_name
@@ -160,12 +163,10 @@ class TransparenciaAmPipeline(Pipeline):
 
         # Vetorizado
         nomes = df["nome"].fillna("").astype(str).str.strip()
-        df["emp_id"] = (nomes.str.upper() + "|" + orgao + "|" + mes_ano).apply(
-            lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
-        )
-        df["person_id"] = nomes.str.upper().apply(
-            lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
-        )
+        import hashlib as _hl
+        _emp_raw = nomes.str.upper() + "|" + orgao + "|" + mes_ano
+        df["emp_id"] = [_hl.sha256(x.encode()).hexdigest()[:16] for x in _emp_raw]
+        df["person_id"] = [_hl.sha256(x.encode()).hexdigest()[:16] for x in nomes.str.upper()]
         df["nome_norm"] = nomes.str.upper().str.replace(r"\s+", " ", regex=True)
 
         employees = df[[
@@ -184,9 +185,7 @@ class TransparenciaAmPipeline(Pipeline):
             ("liquido", "liquido"),
         ]:
             if col_src in df.columns:
-                employees[col_dst] = df[col_src].apply(
-                    lambda x: _parse_brl(str(x))
-                )
+                employees[col_dst] = [_parse_brl(str(x)) for x in df[col_src]]
             else:
                 employees[col_dst] = 0.0
 
@@ -222,7 +221,8 @@ class TransparenciaAmPipeline(Pipeline):
     def run(self) -> None:
         """Processa cada CSV individualmente — sem acumular RAM."""
         base = Path(self.data_dir) / "transparencia_am"
-        csv_files = sorted(base.rglob("*.csv"))
+        _orgao_filter = os.environ.get("TRANSPARENCIA_AM_ORGAO", "").upper()
+        csv_files = sorted(f for f in base.rglob("*.csv") if not _orgao_filter or f.parts[-3].upper() == _orgao_filter)
 
         if not csv_files:
             logger.warning("[transparencia_am] Nenhum CSV encontrado em %s", base)
