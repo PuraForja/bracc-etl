@@ -13,10 +13,11 @@ Estrutura de diretórios:
   data/transparencia_am/{ORGAO}/{ANO}/{arquivo}.csv
 
 Nodes criados:
-  - Person  (chave: cpf ou nome+orgao+mes_ano — CPF não está no CSV, usamos hash)
   - GovEmployee (remuneração mensal — label principal para o orquestrador)
-"""
+  - Person      (chave: nome+orgao hash — CPF não está no CSV)
 
+STREAMING: processa um CSV por vez — nunca acumula tudo na RAM.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -29,7 +30,7 @@ import pandas as pd
 
 from bracc_etl.base import Pipeline
 from bracc_etl.loader import Neo4jBatchLoader
-from bracc_etl.transforms import deduplicate_rows, normalize_name
+from bracc_etl.transforms import normalize_name
 
 if TYPE_CHECKING:
     from neo4j import Driver
@@ -53,40 +54,45 @@ _COL_MAP = {
     "LIQUIDO DISPONIVEL(R$)": "liquido",
 }
 
+_MES_NOME = {
+    "janeiro": "01", "fevereiro": "02", "março": "03", "marco": "03",
+    "abril": "04", "maio": "05", "junho": "06", "julho": "07",
+    "agosto": "08", "setembro": "09", "outubro": "10",
+    "novembro": "11", "dezembro": "12",
+}
 
-def _parse_brl(value: str) -> float | None:
-    """Converte '2.428,85' ou '2428,85' para float."""
-    if not value or value.strip() in ("", "-"):
-        return None
+
+def _extract_mes_ano(csv_path: Path) -> str:
+    """Extrai YYYYMM do nome do arquivo ex: 158_202301.csv → 202301."""
+    m = re.search(r"_(\d{6})\.csv$", csv_path.name, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    return "000000"
+
+
+def _parse_brl(value: str) -> float:
+    """Converte formato BRL (1.234,56) para float."""
+    if not value or not value.strip():
+        return 0.0
+    cleaned = value.strip().replace(".", "").replace(",", ".")
     try:
-        return float(value.strip().replace(".", "").replace(",", "."))
+        return float(cleaned)
     except ValueError:
-        return None
+        return 0.0
 
 
 def _employee_id(nome: str, orgao: str, mes_ano: str) -> str:
-    """ID determinístico: hash de nome+orgao+mes_ano (CSV não tem CPF)."""
-    raw = f"{nome.upper().strip()}:{orgao}:{mes_ano}"
+    raw = f"{nome.upper().strip()}|{orgao}|{mes_ano}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
 def _person_id(nome: str) -> str:
-    """ID de pessoa baseado no nome normalizado."""
-    raw = normalize_name(nome).upper().strip()
+    raw = nome.upper().strip()
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
-def _extract_mes_ano(filepath: Path) -> str:
-    """Extrai YYYYMM do nome do arquivo. Ex: 158_201705.csv → 2017-05"""
-    m = re.search(r"(\d{6})", filepath.stem)
-    if m:
-        yyyymm = m.group(1)
-        return f"{yyyymm[:4]}-{yyyymm[4:]}"
-    return "0000-00"
-
-
 class TransparenciaAmPipeline(Pipeline):
-    """ETL pipeline para remuneração de servidores — Portal Transparência AM."""
+    """ETL pipeline para servidores do Amazonas — streaming por CSV."""
 
     name = "transparencia_am"
     source_id = "transparencia_am"
@@ -100,145 +106,148 @@ class TransparenciaAmPipeline(Pipeline):
         **kwargs: Any,
     ) -> None:
         super().__init__(driver, data_dir, limit=limit, chunk_size=chunk_size, **kwargs)
-        self.employees: list[dict[str, Any]] = []
-        self.persons: list[dict[str, Any]] = []
-        self.person_rels: list[dict[str, Any]] = []
 
     def extract(self) -> None:
+        """No-op — processamento feito em run() por CSV."""
+        pass
+
+    def transform(self) -> None:
+        """No-op — processamento feito em run() por CSV."""
+        pass
+
+    def load(self) -> None:
+        """No-op — processamento feito em run() por CSV."""
+        pass
+
+    def _process_csv(self, csv_path: Path, loader: Neo4jBatchLoader, session: Any) -> int:
+        """Lê, transforma e carrega um único CSV. Retorna nº de employees carregados."""
+        parts = csv_path.relative_to(Path(self.data_dir) / "transparencia_am").parts
+        orgao = parts[0] if len(parts) >= 3 else "DESCONHECIDO"
+        ano = parts[1] if len(parts) >= 3 else "0000"
+        mes_ano = _extract_mes_ano(csv_path)
+
+        try:
+            df = pd.read_csv(
+                csv_path,
+                sep=";",
+                dtype=str,
+                encoding="latin-1",
+                keep_default_na=False,
+            )
+        except Exception as e:
+            logger.warning("Erro ao ler %s: %s", csv_path.name, e)
+            return 0
+
+        if df.empty:
+            return 0
+
+        df.columns = [c.strip() for c in df.columns]
+        rename = {k: v for k, v in _COL_MAP.items() if k in df.columns}
+        df = df.rename(columns=rename)
+
+        if "nome" not in df.columns:
+            return 0
+
+        # Filtrar linhas inválidas
+        df = df[df["nome"].str.strip().str.upper().ne("NOME")]
+        df = df[df["nome"].str.strip().ne("")]
+        if df.empty:
+            return 0
+
+        df["orgao"] = orgao
+        df["ano"] = ano
+        df["mes_ano"] = mes_ano
+
+        # Vetorizado
+        nomes = df["nome"].fillna("").astype(str).str.strip()
+        df["emp_id"] = (nomes.str.upper() + "|" + orgao + "|" + mes_ano).apply(
+            lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
+        )
+        df["person_id"] = nomes.str.upper().apply(
+            lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
+        )
+        df["nome_norm"] = nomes.str.upper().str.replace(r"\s+", " ", regex=True)
+
+        employees = df[[
+            "emp_id", "nome_norm", "orgao", "ano", "mes_ano",
+        ]].rename(columns={"nome_norm": "nome"}).copy()
+
+        for col in ["lotacao", "cargo", "funcao", "classe", "vinculo", "dt_admissao"]:
+            if col in df.columns:
+                employees[col] = df[col].fillna("").astype(str).str.strip()
+            else:
+                employees[col] = ""
+
+        for col_src, col_dst in [
+            ("rem_total", "rem_total"), ("desc_teto", "desc_teto"),
+            ("rem_devida", "rem_devida"), ("descontos", "descontos"),
+            ("liquido", "liquido"),
+        ]:
+            if col_src in df.columns:
+                employees[col_dst] = df[col_src].apply(
+                    lambda x: _parse_brl(str(x))
+                )
+            else:
+                employees[col_dst] = 0.0
+
+        employees["source"] = "transparencia_am"
+        employees["person_id"] = df["person_id"].values
+
+        persons = df[["person_id", "nome_norm"]].rename(
+            columns={"nome_norm": "name"}
+        ).drop_duplicates(subset=["person_id"]).copy()
+        persons["source"] = "transparencia_am"
+
+        person_rels = df[["person_id", "emp_id"]].drop_duplicates().to_dict("records")
+
+        emp_records = employees.drop_duplicates(subset=["emp_id"]).to_dict("records")
+        per_records = persons.to_dict("records")
+
+        # Load
+        if emp_records:
+            loader.load_nodes("GovEmployee", emp_records, key_field="emp_id", session=session)
+        if per_records:
+            loader.load_nodes("Person", per_records, key_field="person_id", session=session)
+        if person_rels:
+            query = (
+                "UNWIND $rows AS row "
+                "MATCH (p:Person {person_id: row.person_id}) "
+                "MATCH (e:GovEmployee {emp_id: row.emp_id}) "
+                "MERGE (p)-[:TEM_REMUNERACAO]->(e)"
+            )
+            loader.run_query_with_retry(query, person_rels, session=session)
+
+        return len(emp_records)
+
+    def run(self) -> None:
+        """Processa cada CSV individualmente — sem acumular RAM."""
         base = Path(self.data_dir) / "transparencia_am"
         csv_files = sorted(base.rglob("*.csv"))
 
         if not csv_files:
-            raise FileNotFoundError(f"Nenhum CSV encontrado em {base}")
+            logger.warning("[transparencia_am] Nenhum CSV encontrado em %s", base)
+            return
 
-        logger.info("Carregando %d CSVs de %s...", len(csv_files), base)
+        total_files = len(csv_files)
+        logger.info("[transparencia_am] Processando %d CSVs...", total_files)
 
-        all_rows: list[dict[str, Any]] = []
-        for i, csv_path in enumerate(csv_files):
-            # Estrutura: transparencia_am/{ORGAO}/{ANO}/{arquivo}.csv
-            parts = csv_path.relative_to(base).parts
-            orgao = parts[0] if len(parts) >= 3 else "DESCONHECIDO"
-            ano = parts[1] if len(parts) >= 3 else "0000"
-            mes_ano = _extract_mes_ano(csv_path)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
+        total_employees = 0
 
-            if i % 100 == 0:
-                logger.info("Processando %d/%d %s", i + 1, len(csv_files), csv_path.name)
+        for i, csv_path in enumerate(csv_files, 1):
+            if i % 100 == 0 or i == 1:
+                logger.info("Processando %d/%d %s", i, total_files, csv_path.name)
 
-            try:
-                df = pd.read_csv(
-                    csv_path,
-                    sep=";",
-                    dtype=str,
-                    encoding="latin-1",
-                    keep_default_na=False,
-                )
-                df.columns = [c.strip() for c in df.columns]
+            with loader.open_session() as session:
+                count = self._process_csv(csv_path, loader, session)
+            total_employees += count
 
-                # Renomeia colunas conhecidas
-                rename = {k: v for k, v in _COL_MAP.items() if k in df.columns}
-                df = df.rename(columns=rename)
-
-                df["orgao"] = orgao
-                df["ano"] = ano
-                df["mes_ano"] = mes_ano
-                df["arquivo"] = csv_path.name
-
-                all_rows.extend(df.to_dict("records"))
-
-                if self.limit and len(all_rows) >= self.limit:
-                    all_rows = all_rows[: self.limit]
-                    break
-
-            except Exception as e:
-                logger.warning("Erro ao ler %s: %s", csv_path.name, e)
-
-        self._raw = all_rows
-        logger.info("Total de registros extraídos: %d", len(self._raw))
-
-    def transform(self) -> None:
-        employees: list[dict[str, Any]] = []
-        persons: list[dict[str, Any]] = []
-        person_rels: list[dict[str, Any]] = []
-
-        for row in self._raw:
-            nome_raw = str(row.get("nome", "")).strip()
-            if not nome_raw or nome_raw.upper() in ("NOME", ""):
-                continue
-
-            nome = normalize_name(nome_raw)
-            orgao = str(row.get("orgao", "")).strip()
-            mes_ano = str(row.get("mes_ano", "")).strip()
-
-            emp_id = _employee_id(nome_raw, orgao, mes_ano)
-            pid = _person_id(nome_raw)
-
-            employees.append({
-                "emp_id": emp_id,
-                "nome": nome,
-                "orgao": orgao,
-                "ano": str(row.get("ano", "")).strip(),
-                "mes_ano": mes_ano,
-                "lotacao": str(row.get("lotacao", "")).strip(),
-                "cargo": str(row.get("cargo", "")).strip(),
-                "funcao": str(row.get("funcao", "")).strip(),
-                "classe": str(row.get("classe", "")).strip(),
-                "vinculo": str(row.get("vinculo", "")).strip(),
-                "dt_admissao": str(row.get("dt_admissao", "")).strip(),
-                "rem_total": _parse_brl(str(row.get("rem_total", ""))),
-                "desc_teto": _parse_brl(str(row.get("desc_teto", ""))),
-                "rem_devida": _parse_brl(str(row.get("rem_devida", ""))),
-                "descontos": _parse_brl(str(row.get("descontos", ""))),
-                "liquido": _parse_brl(str(row.get("liquido", ""))),
-                "source": "transparencia_am",
-                "person_id": pid,
-            })
-
-            persons.append({
-                "person_id": pid,
-                "name": nome,
-                "source": "transparencia_am",
-            })
-
-            person_rels.append({
-                "person_id": pid,
-                "emp_id": emp_id,
-            })
-
-        self.employees = deduplicate_rows(employees, ["emp_id"])
-        self.persons = deduplicate_rows(persons, ["person_id"])
-        self.person_rels = person_rels
+            if self.limit and total_employees >= self.limit:
+                logger.info("[transparencia_am] Limit %d atingido — parando.", self.limit)
+                break
 
         logger.info(
-            "Transform: %d registros | %d pessoas únicas",
-            len(self.employees),
-            len(self.persons),
+            "[transparencia_am] ✅ CONCLUÍDO — %d employees em %d CSVs",
+            total_employees,
+            total_files,
         )
-
-    def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
-
-        with loader.open_session() as session:
-            if self.employees:
-                loader.load_nodes(
-                    "GovEmployee",
-                    self.employees,
-                    key_field="emp_id",
-                    session=session,
-                )
-
-            if self.persons:
-                loader.load_nodes(
-                    "Person",
-                    self.persons,
-                    key_field="person_id",
-                    session=session,
-                )
-
-            if self.person_rels:
-                query = (
-                    "UNWIND $rows AS row "
-                    "MATCH (p:Person {person_id: row.person_id}) "
-                    "MATCH (e:GovEmployee {emp_id: row.emp_id}) "
-                    "MERGE (p)-[:TEM_REMUNERACAO]->(e)"
-                )
-                loader.run_query_with_retry(query, self.person_rels, session=session)

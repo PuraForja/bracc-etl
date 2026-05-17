@@ -451,3 +451,22 @@ grep -r "loader\.run_query(" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines
 
 *Criado em 01/05/2026*
 *Consolidado em 13/05/2026 — unificado local + GitHub + sessões 08-12/05*
+
+---
+
+## 2026-05-13 — Convenções de sessão
+
+### [13/05/2026] — Convenção: && echo "OK" em comandos — feat ✅
+**Regra:** Todo comando enviado ao usuário deve terminar com `&& echo "OK"`.
+Permite confirmar execução com resposta mínima, economizando tokens e tempo.
+**Aplicar em:** todos os comandos bash enviados pela IA a partir desta data.
+
+### [16/05/2026] — transparencia_am.py — reescrita streaming + fix loader
+**Problema:** extract() acumulava todos os 6857 CSVs na RAM antes de processar
+**Fix 1:** reescrito com run() streaming — processa um CSV por vez
+**Fix 2:** loader.py — tx.run().consume() para evitar cursor leak no driver Neo4j
+**Fix 3:** sessao por CSV em vez de sessao global — evita pool esgotado
+**Fix 4:** indice gov_employee_id criado em GovEmployee.emp_id
+**Status:** pipeline ainda morre silenciosamente — investigacao continua
+**Suspeita atual:** faulthandler + SHOW TRANSACTIONS para diagnostico
+**GovEmployee no banco:** 112.590 (parcial)

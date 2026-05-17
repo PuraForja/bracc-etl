@@ -23,7 +23,7 @@ class Neo4jBatchLoader:
 
     def _run_batch_once(self, query: str, batch: list[dict[str, Any]], session=None) -> None:
         def _tx(tx: Any) -> None:
-            tx.run(query, rows=batch)
+            tx.run(query, rows=batch).consume()
         if session is not None:
             session.execute_write(_tx)
         else:
