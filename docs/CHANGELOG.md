@@ -522,3 +522,11 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 [ ] Bug frontend — grafo vazio para Person nodes
 [ ] SOCIO_DE incompletos — 18.7M vs 26.8M
 [ ] BigQuery (rais, dou, stf, mides) — após credencial GCP
+
+### [17/05/2026] — Entity Resolution AM — pesquisa fontes com CPF
+**CAGED FTP:** ftp://ftp.mtps.gov.br/pdet/microdados/NOVO%20CAGED/ — acessivel
+**CAGEDMOV:** tem uf mas NAO tem CPF individual — descartado para entity resolution
+**CAGEDFOR:** a testar — pode ter CPF individual
+**Portal Transparencia servidores:** 403 em todos os meses testados
+**API CGU:** requer CPF via Gov.br — risco politico, descartado
+**7zip:** instalado em C:/Program Files/7-Zip/7z.exe
