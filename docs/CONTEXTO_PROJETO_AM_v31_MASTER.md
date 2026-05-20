@@ -32,9 +32,9 @@ Indices criados: gov_employee_nome, person_name
 ## CASO DESTAQUE - DIEGO ROBERTO AFONSO
 Servidor SUHAB/SECT + socio D R A DERIVADOS DE PETROLEO (iniciais dele)
 Rede familiar: DH LOJAS DE CONVENIENCIAS + TREVO DA AMAZONIA NAVEGACAO
-Forneceu R7.386 em combustivel para parlamentares AM:
-- ADAIL FILHO deputado federal MDB/AM: R2.586
-- SIDNEY LEITE senador PSD/AM: R.600
+Forneceu R$ 67.386 em combustivel para parlamentares AM:
+- ADAIL FILHO deputado federal MDB/AM: R$ 62.586
+- SIDNEY LEITE senador PSD/AM: R$ 4.600
 Sem sancoes registradas.
 
 ## STATUS DOWNLOADS (19/05/2026)
