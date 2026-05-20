@@ -325,7 +325,7 @@ def _download_donations(
     "--years",
     multiple=True,
     type=int,
-    default=[2024],
+    default=[2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],
     help="Election years to download (e.g. --years 2018 --years 2022)",
 )
 @click.option("--output-dir", default="./data/tse", help="Output directory")
