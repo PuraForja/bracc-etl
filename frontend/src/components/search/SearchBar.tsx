@@ -18,11 +18,15 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-    onSearch({ query: trimmed, type });
+    const digits = trimmed.replace(/[^0-9]/g, "");
+    let formatted = trimmed;
+    if (digits.length === 11) formatted = digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    if (digits.length === 14) formatted = digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    onSearch({ query: formatted, type });
   };
 
   return (

@@ -20,7 +20,16 @@ from bracc.services.public_guard import (
 router = APIRouter(prefix="/api/v1", tags=["search"])
 
 _LUCENE_SPECIAL = re.compile(r'([+\-&|!(){}[\]^"~*?:\\/])')
+_CPF_PATTERN = re.compile(r'^\d{11}$')
+_CNPJ_PATTERN = re.compile(r'^\d{14}$')
 
+def _format_document(q: str) -> str:
+    digits = re.sub(r'[^0-9]', '', q)
+    if _CPF_PATTERN.match(digits):
+        return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+    if _CNPJ_PATTERN.match(digits):
+        return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+    return q
 
 def _escape_lucene(query: str) -> str:
     """Escape Lucene special characters so user input is treated as literals."""
@@ -59,7 +68,7 @@ async def search_entities(
         session,
         "search",
         {
-            "query": _escape_lucene(q),
+            "query": _escape_lucene(_format_document(q)),
             "entity_type": type_filter,
             "skip": skip,
             "limit": size,
@@ -70,7 +79,7 @@ async def search_entities(
         session,
         "search_count",
         {
-            "query": _escape_lucene(q),
+            "query": _escape_lucene(_format_document(q)),
             "entity_type": type_filter,
             "hide_person_entities": hide_person_entities,
         },
