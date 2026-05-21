@@ -125,7 +125,7 @@ async def get_graph(
         session,
         "graph_expand",
         {"entity_id": entity_id, "label_filter": label_filter, "depth": depth},
-        timeout=5,
+        timeout=30,
     )
 
     if not records:
