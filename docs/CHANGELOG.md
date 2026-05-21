@@ -530,3 +530,9 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 **Portal Transparencia servidores:** 403 em todos os meses testados
 **API CGU:** requer CPF via Gov.br — risco politico, descartado
 **7zip:** instalado em C:/Program Files/7-Zip/7z.exe
+
+### [17/05/2026] — download_tse.py — bug anos incompletos
+**Problema:** default years=[2024] — orchestrator nao passa --years, entao so baixa 2024
+**Impacto:** banco tem so 2016 e 2024 — faltam 2018, 2020, 2022
+**Amom Mandel nao esta no banco por isso**
+**Correcao:** passar --years completo no orchestrator ou mudar default
