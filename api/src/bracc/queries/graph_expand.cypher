@@ -5,9 +5,9 @@ WHERE elementId(center) = $entity_id
        OR center:Convenio OR center:LaborStats OR center:PublicOffice
        OR center:OffshoreEntity OR center:OffshoreOfficer OR center:GlobalPEP
        OR center:CVMProceeding OR center:Expense OR center:GovEmployee OR center:Partner OR center:InternationalSanction OR center:TaxWaiver OR center:GovTravel OR center:GovCardExpense)
-OPTIONAL MATCH p=(center)-[:SOCIO_DE|DOOU|CANDIDATO_EM|VENCEU|AUTOR_EMENDA|SANCIONADA|OPERA_UNIDADE|DEVE|RECEBEU_EMPRESTIMO|EMBARGADA|MANTEDORA_DE|BENEFICIOU|GEROU_CONVENIO|SAME_AS|POSSIBLY_SAME_AS|OFFICER_OF|INTERMEDIARY_OF|GLOBAL_PEP_MATCH|CVM_SANCIONADA|GASTOU|FORNECEU|TEM_REMUNERACAO|POSSIVEL_MESMO_INDIVIDUO*1..4]-(n)
-WHERE length(p) <= $depth
-  AND all(x IN nodes(p) WHERE NOT (x:User OR x:Investigation OR x:Annotation OR x:Tag))
+OPTIONAL MATCH p=(center)-[:SOCIO_DE|DOOU|CANDIDATO_EM|VENCEU|AUTOR_EMENDA|SANCIONADA|OPERA_UNIDADE|DEVE|RECEBEU_EMPRESTIMO|EMBARGADA|MANTEDORA_DE|BENEFICIOU|GEROU_CONVENIO|SAME_AS|POSSIBLY_SAME_AS|OFFICER_OF|INTERMEDIARY_OF|GLOBAL_PEP_MATCH|CVM_SANCIONADA|GASTOU|FORNECEU|TEM_REMUNERACAO|POSSIVEL_MESMO_INDIVIDUO*1..$depth]-(n)
+WHERE all(x IN nodes(p) WHERE NOT (x:User OR x:Investigation OR x:Annotation OR x:Tag))
+WITH center, p LIMIT 500
 WITH center, collect(p) AS paths
 WITH center,
      reduce(ns = [center], p IN paths | ns + CASE WHEN p IS NULL THEN [] ELSE nodes(p) END) AS raw_nodes,

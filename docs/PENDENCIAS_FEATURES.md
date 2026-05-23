@@ -135,3 +135,52 @@ No intermediario (:Identity) com (:SourceRecord)-[:REPRESENTS {score}]->(:Identi
 score > 0.95: auto-link
 0.80 a 0.95: revisao manual
 menor 0.80: apenas sugestao
+
+---
+
+## [21/05/2026] — Expansão Adaptativa do Grafo (depth=2)
+Registrado em: 21/05/2026
+Prioridade: Alta
+
+### CONTEXTO
+Query original com *1..4 variável causava 504 timeout em depth=2.
+Fix temporário aplicado: dois MATCH separados com slice fixo de 4 vizinhos por node.
+Resultado atual: ~117 nodes, ~3.7s. Funciona mas perde conexões relevantes.
+
+### SOLUÇÃO PLANEJADA — Busca Adaptativa na API
+Implementar no graph.py + nova query node_degrees.cypher:
+
+1. Depth=1 completo (já funciona)
+2. Query em lote para medir grau de todos os nodes do depth=1 (uma só chamada)
+3. Classificação por bucket na API Python:
+   - grau <= 30: expande tudo
+   - grau 31-100: limita a 15 vizinhos
+   - grau 101-1000: limita a 5 vizinhos
+   - grau > 1000: limita a 2 vizinhos
+4. Orçamento global de 800 edges no depth=2
+5. apoc.cypher.runTimeboxed(8000ms) como fallback de segurança
+6. Metadados no retorno JSON:
+   { "truncated_nodes": [{"id": "...", "total_degree": 312, "returned": 5}] }
+
+### SOLUÇÃO PLANEJADA — Expansão Incremental no Frontend
+Adicionar expansão por clique duplo em node (react-force-graph-2d já suporta):
+- Clique simples: abre painel de detalhe (comportamento atual)
+- Clique duplo: chama novo endpoint GET /api/v1/graph/expand/{node_id}
+- Store graphExplorer: novo campo expandedNodeIds + ação expandNode
+- GraphCanvas: merge dos novos nodes/edges no grafo existente sem recarregar tudo
+
+### ARQUIVOS A MODIFICAR
+- api/src/bracc/queries/graph_expand.cypher (query atual com fix temporário)
+- api/src/bracc/queries/node_degrees.cypher (novo — ainda não existe)
+- api/src/bracc/routers/graph.py (lógica adaptativa)
+- api/src/bracc/models/graph.py (adicionar campo truncated_nodes no GraphResponse)
+- frontend/src/stores/graphExplorer.ts (expandedNodeIds + expandNode)
+- frontend/src/hooks/useGraphData.ts (novo hook useExpandNode)
+- frontend/src/components/graph/GraphCanvas.tsx (onNodeDoubleClick)
+
+### REFERÊNCIA
+Consulta feita em 21/05/2026 com 4 IAs externas — consenso:
+- Nunca usar *1..N variável em produção
+- Busca adaptativa com degree em lote é a solução correta
+- runTimeboxed como cinto de segurança, não solução principal
+- Expansão incremental por clique é o modelo ideal para investigação (Maltego, Palantir)

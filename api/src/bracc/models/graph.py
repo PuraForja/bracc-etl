@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-
 from bracc.models.entity import SourceAttribution
 
 
@@ -25,7 +24,14 @@ class GraphEdge(BaseModel):
     exposure_tier: str = "public_safe"
 
 
+class TruncatedNode(BaseModel):
+    id: str
+    total_degree: int
+    returned: int
+
+
 class GraphResponse(BaseModel):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
     center_id: str
+    truncated_nodes: list[TruncatedNode] = []
