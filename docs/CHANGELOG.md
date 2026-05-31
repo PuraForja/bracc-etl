@@ -536,3 +536,39 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 **Impacto:** banco tem so 2016 e 2024 — faltam 2018, 2020, 2022
 **Amom Mandel nao esta no banco por isso**
 **Correcao:** passar --years completo no orchestrator ou mudar default
+
+## 2026-05-23 a 31 — PNCP importação + bid_id index
+
+### [31/05/2026] — PNCP — importação completa ✅
+**Registros:** 2.099.331 Bid nodes importados
+**Agencies:** 17.585 Company nodes merged
+**Relações:** 2.099.331 LICITOU criadas
+**Cobertura:** 2021/08 a 2026/05 (58/65 meses — 2021/01-07 sem dados no PNCP)
+**Duração:** ~19h (18:27 30/05 → 13:46 31/05)
+**Problema encontrado:** sem índice em bid_id — MERGE fazia full scan, travou em 255k
+**Fix:** CREATE INDEX bid_id IF NOT EXISTS FOR (n:Bid) ON (n.bid_id) — acelerou de 0/min para 43.223/min
+
+### [31/05/2026] — bid_id index — feat ✅
+**Adicionado em:** docs/SETUP_INDICES.md e orchestrator.sh setup_neo4j_indexes()
+**Motivo:** MERGE Bid sem índice causava full scan com 2M registros — importação travou por 12h
+
+### [29/05/2026] — PNCP download — checkpoint fix ✅
+**Problema:** .checkpoint bloqueava redownload dos gaps mesmo após limpeza
+**Fix:** remoção manual das entradas dos 22 meses faltantes + relançamento
+**Resultado:** 58/65 meses baixados (89.2%) — gaps 2021/01-07 confirmados sem dados
+
+### [23/05/2026] — WSL — configuração Git credenciais ✅
+**Problema:** WSL não compartilha credenciais do Git Bash do Windows
+**Fix:** git config --global credential.helper store + token GitHub gerado
+
+## PENDÊNCIAS ATUAIS (31/05/2026)
+[ ] Backup Neo4j — URGENTE (último: 09/05 — 22 dias)
+[ ] SAME_AS Person→Person entre fontes (TSE vs transparência)
+[ ] POSSIVEL_MESMO_INDIVIDUO + TEM_REMUNERACAO — frontend
+[ ] Deduplicação automática CPF no orchestrator
+[ ] SOCIO_DE incompletos — 18.7M vs 26.8M
+[ ] Fix sessão única — senado_cpis, cnpj, etc.
+[ ] Amom Mandel — 4 nodes separados
+[ ] BigQuery (rais, dou, stf, mides) — após credencial GCP
+[ ] CNES download_cnes_am.py + pipeline
+[ ] Relatório exportável casos conflito de interesse
