@@ -44,6 +44,7 @@ LABEL_MAP[senado_cpis]="CPI"
 LABEL_MAP[siconfi]="MunicipalFinance"
 LABEL_MAP[siop]="Amendment"
 LABEL_MAP[tce_am]="Contract"
+LABEL_MAP[pncp]="Bid"
 LABEL_MAP[tcu]="Sanction"
 LABEL_MAP[tesouro_emendas]="Amendment"
 LABEL_MAP[transferegov]="Payment"
@@ -63,7 +64,7 @@ LABEL_MAP[antaq]="Contract"
 
 # ── FONTES A IGNORAR ─────────────────────────────────────────────────────────
 SKIP=(
-    pncp            # roda em background separado — download leva dias
+    # pncp  # download concluído — importar via fila normal
 )
 
 # ── FILA NACIONAL ─────────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ DEFAULT_QUEUE=(
     tse
     viagens
     cnpj
+    pncp
 )
 
 # ── FILA AMAZONAS ─────────────────────────────────────────────────────────────
@@ -219,7 +221,8 @@ CREATE INDEX person_person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id);
 CREATE INDEX company_cnpj IF NOT EXISTS FOR (n:Company) ON (n.cnpj);
 CREATE INDEX health_cnes IF NOT EXISTS FOR (n:Health) ON (n.cnes_code);
 CREATE INDEX finance_id IF NOT EXISTS FOR (n:MunicipalFinance) ON (n.finance_id);
-CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id)
+CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id);
+CREATE INDEX bid_id IF NOT EXISTS FOR (n:Bid) ON (n.bid_id)
 " 2>&1 | filter_output | tee -a "$LOG"
     log_ok "Indices Neo4j criados"
 }
@@ -290,7 +293,7 @@ start_pncp_background() {
             echo "[PNCP] reiniciando em 30s..."; sleep 30
         done >> "$LOG" 2>&1
     ) &
-    log_ok "PNCP em background (PID $!)"
+    log_ok "PNCP em background (PID $!) — download pode levar vários dias, processo normal"
 }
 
 run_download() {

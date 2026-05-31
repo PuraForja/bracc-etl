@@ -13,7 +13,8 @@ CREATE INDEX person_person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id);
 CREATE INDEX company_cnpj IF NOT EXISTS FOR (n:Company) ON (n.cnpj);
 CREATE INDEX health_cnes IF NOT EXISTS FOR (n:Health) ON (n.cnes_code);
 CREATE INDEX finance_id IF NOT EXISTS FOR (n:MunicipalFinance) ON (n.finance_id);
-CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id)
+CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id);
+CREATE INDEX bid_id IF NOT EXISTS FOR (n:Bid) ON (n.bid_id)
 "
 ```
 
@@ -28,6 +29,7 @@ CREATE INDEX gov_employee_id IF NOT EXISTS FOR (n:GovEmployee) ON (n.emp_id)
 | health_cnes | MERGE Health — 612k nodes |
 | finance_id | MERGE MunicipalFinance — sem índice: 42min para 10k registros |
 | gov_employee_id | MERGE GovEmployee — transparencia_am |
+| bid_id | MERGE Bid — pncp — sem índice: full scan travou importação com 2M registros |
 
 ## Verificar índices existentes
 
@@ -41,3 +43,4 @@ docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD na
 - 08/05/2026: expense_id, person_cpf, company_cnpj, health_cnes — camara travava
 - 16/05/2026: gov_employee_id — transparencia_am
 - 17/05/2026: person_person_id — transparencia_am travava no MERGE Person
+- 31/05/2026: bid_id — pncp travava com 2M registros sem índice
