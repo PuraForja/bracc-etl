@@ -572,3 +572,14 @@ Permite confirmar execução com resposta mínima, economizando tokens e tempo.
 [ ] BigQuery (rais, dou, stf, mides) — após credencial GCP
 [ ] CNES download_cnes_am.py + pipeline
 [ ] Relatório exportável casos conflito de interesse
+
+### [31/05/2026] — Backup Neo4j
+Backup realizado apos 22 dias sem backup (ultimo: 09/05)
+
+### [31/05/2026] — Masters consolidados no WSL
+MASTER v5-v34 copiados para ~/bracc/docs/ — v1-v4, v18, v29 perdidos
+
+### [31/05/2026] — graph_expand investigacao SOCIO_DE
+Problema: Person->SAME_AS->Partner->SOCIO_DE->Company = 3 saltos — depth=2 nao alcanca
+LIMIT aumentado 500->2000 — nao resolveu
+Proximo passo: query extra SAME_AS->SOCIO_DE no graph_expand.cypher
