@@ -44,3 +44,20 @@ docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD na
 - 16/05/2026: gov_employee_id — transparencia_am
 - 17/05/2026: person_person_id — transparencia_am travava no MERGE Person
 - 31/05/2026: bid_id — pncp travava com 2M registros sem índice
+
+## Índices WCC — community_id
+Criados após rodar `gds.wcc.write` para resolver identidade entre Person/Partner/GlobalPEP.
+```bash
+docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "
+CREATE INDEX community_id_person IF NOT EXISTS FOR (n:Person) ON (n.community_id);
+CREATE INDEX community_id_partner IF NOT EXISTS FOR (n:Partner) ON (n.community_id);
+CREATE INDEX community_id_globalpep IF NOT EXISTS FOR (n:GlobalPEP) ON (n.community_id)
+"
+```
+| Índice | Motivo |
+|---|---|
+| community_id_person | WCC — expansão de grafo via cluster de identidade |
+| community_id_partner | WCC — expansão de grafo via cluster de identidade |
+| community_id_globalpep | WCC — expansão de grafo via cluster de identidade |
+
+- 01/06/2026: community_id — WCC GDS resolve Person↔Partner em depth=1

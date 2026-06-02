@@ -56,6 +56,8 @@ CANDIDATO_COLS = {
     "ANO_ELEICAO": "ano",
     "SG_PARTIDO": "partido",
     "NR_CANDIDATO": "nr_candidato",
+    "DT_NASCIMENTO": "data_nascimento",
+    "NR_TITULO_ELEITORAL_CANDIDATO": "titulo_eleitor",
 }
 
 # ── Donation column mappings (two eras) ───────────────────────────────
@@ -70,6 +72,8 @@ DOACAO_COLS_NEW = {
     "NM_CANDIDATO": "nome_candidato",
     "SG_PARTIDO": "partido",
     "NR_CANDIDATO": "nr_candidato",
+    "DT_NASCIMENTO": "data_nascimento",
+    "NR_TITULO_ELEITORAL_CANDIDATO": "titulo_eleitor",
 }
 
 # Pre-2018 format: Portuguese column names (2010-2016)

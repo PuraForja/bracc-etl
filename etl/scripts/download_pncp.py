@@ -75,7 +75,10 @@ def _fetch_page(
         return None
 
     # PNCP sometimes returns invalid control characters in JSON text fields
-    return json.loads(text, strict=False)  # type: ignore[no-any-return]
+    try:
+        return json.loads(text, strict=False)  # type: ignore[no-any-return]
+    except json.JSONDecodeError:
+        return None
 
 
 def _fetch_window(

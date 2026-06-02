@@ -92,6 +92,9 @@ class TSEPipeline(Pipeline):
             if raw_cpf != _MASKED_CPF_SENTINEL:
                 cpf = format_cpf(strip_document(raw_cpf))
 
+            data_nascimento = str(row.get("data_nascimento", "")).strip()
+            titulo_eleitor = str(row.get("titulo_eleitor", "")).strip()
+
             candidate: dict[str, Any] = {
                 "sq_candidato": sq,
                 "name": name,
@@ -100,6 +103,10 @@ class TSEPipeline(Pipeline):
             }
             if cpf:
                 candidate["cpf"] = cpf
+            if data_nascimento and data_nascimento not in ("", "nan", "NaN"):
+                candidate["data_nascimento"] = data_nascimento
+            if titulo_eleitor and titulo_eleitor not in ("", "nan", "NaN"):
+                candidate["titulo_eleitor"] = titulo_eleitor
 
             candidates.append(candidate)
             elections.append({
@@ -156,6 +163,43 @@ class TSEPipeline(Pipeline):
         # For candidates without CPF, merge by sq_candidato
         if nocpf_candidates:
             loader.load_nodes("Person", nocpf_candidates, key_field="sq_candidato")
+
+        # SAME_AS: link nocpf candidates to existing Person via titulo_eleitor ou nome+data_nascimento
+        if nocpf_candidates:
+            # Tentativa 1: titulo_eleitor (determinístico)
+            titulo_rows = [
+                {"sq": c["sq_candidato"], "titulo": c["titulo_eleitor"]}
+                for c in nocpf_candidates
+                if c.get("titulo_eleitor")
+            ]
+            if titulo_rows:
+                loader.run_query_with_retry(
+                    "UNWIND $rows AS row "
+                    "MATCH (tse:Person {sq_candidato: row.sq}) "
+                    "MATCH (cpf:Person {titulo_eleitor: row.titulo}) "
+                    "WHERE tse <> cpf "
+                    "MERGE (tse)-[:SAME_AS {source: 'titulo_eleitor', confidence: 1.0}]->(cpf)",
+                    titulo_rows,
+                )
+            # Tentativa 2: nome+data_nascimento (só quando match é único na base)
+            nasc_rows = [
+                {"sq": c["sq_candidato"], "name": c["name"], "data_nascimento": c["data_nascimento"]}
+                for c in nocpf_candidates
+                if c.get("data_nascimento") and not c.get("titulo_eleitor")
+            ]
+            if nasc_rows:
+                loader.run_query_with_retry(
+                    "UNWIND $rows AS row "
+                    "MATCH (tse:Person {sq_candidato: row.sq}) "
+                    "MATCH (cpf:Person) "
+                    "WHERE cpf.name = row.name AND cpf.data_nascimento = row.data_nascimento "
+                    "AND cpf.cpf IS NOT NULL "
+                    "WITH tse, collect(cpf) AS matches "
+                    "WHERE size(matches) = 1 "
+                    "WITH tse, matches[0] AS cpf "
+                    "MERGE (tse)-[:SAME_AS {source: 'nome_nascimento', confidence: 0.97}]->(cpf)",
+                    nasc_rows,
+                )
 
         # Build sq_candidato→cpf lookup for linking
         sq_to_cpf: dict[str, str] = {}
