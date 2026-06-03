@@ -71,7 +71,6 @@ class TSEPipeline(Pipeline):
 
     def transform(self) -> None:
         self._transform_candidates()
-        self._transform_donations()
 
     def _transform_candidates(self) -> None:
         candidates: list[dict[str, Any]] = []
@@ -122,31 +121,75 @@ class TSEPipeline(Pipeline):
             elections, ["year", "cargo", "uf", "municipio", "candidate_sq"]
         )
 
-    def _transform_donations(self) -> None:
-        donations: list[dict[str, Any]] = []
-
-        for _, row in self._raw_doacoes.iterrows():
-            candidate_sq = str(row["sq_candidato"]).strip()
-            donor_doc = strip_document(str(row["cpf_cnpj_doador"]))
-            donor_name = normalize_name(str(row["nome_doador"]))
-            valor = float(str(row["valor"]).replace(",", "."))
-            ano = int(row["ano"])
-
-            is_company = len(donor_doc) == 14
-            donor_doc_fmt = format_cnpj(donor_doc)
-            if not is_company:
-                donor_doc_fmt = format_cpf(donor_doc)
-
-            donations.append({
-                "candidate_sq": candidate_sq,
-                "donor_doc": donor_doc_fmt,
-                "donor_name": donor_name,
-                "donor_is_company": is_company,
-                "valor": valor,
-                "year": ano,
-            })
-
-        self.donations = donations
+    def _load_donations_chunked(self, sq_to_cpf: dict, loader) -> None:
+        """Processa doacoes em chunks para evitar OOM."""
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+        chunk_size = 50_000
+        total = 0
+        for chunk in pd.read_csv(
+            self._doacoes_path, encoding="latin-1", dtype=str,
+            chunksize=chunk_size,
+            nrows=self.limit,
+        ):
+            donations = []
+            for _, row in chunk.iterrows():
+                candidate_sq = str(row["sq_candidato"]).strip()
+                donor_doc = strip_document(str(row["cpf_cnpj_doador"]))
+                donor_name = normalize_name(str(row["nome_doador"]))
+                try:
+                    valor = float(str(row["valor"]).replace(",", "."))
+                    ano = int(row["ano"])
+                except (ValueError, AttributeError):
+                    continue
+                is_company = len(donor_doc) == 14
+                donor_doc_fmt = format_cnpj(donor_doc) if is_company else format_cpf(donor_doc)
+                donations.append({
+                    "candidate_sq": candidate_sq,
+                    "donor_doc": donor_doc_fmt,
+                    "donor_name": donor_name,
+                    "donor_is_company": is_company,
+                    "valor": valor,
+                    "year": ano,
+                })
+            if not donations:
+                continue
+            person_donors = [{"cpf": d["donor_doc"], "name": d["donor_name"]} for d in donations if not d["donor_is_company"]]
+            company_donors = [{"cnpj": d["donor_doc"], "name": d["donor_name"], "razao_social": d["donor_name"]} for d in donations if d["donor_is_company"]]
+            if person_donors:
+                loader.load_nodes("Person", deduplicate_rows(person_donors, ["cpf"]), key_field="cpf")
+            if company_donors:
+                loader.load_nodes("Company", deduplicate_rows(company_donors, ["cnpj"]), key_field="cnpj")
+            person_rels = []
+            company_rels = []
+            for d in donations:
+                target_cpf = sq_to_cpf.get(d["candidate_sq"], "")
+                target_sq = d["candidate_sq"] if not target_cpf else ""
+                entry = {"source_key": d["donor_doc"], "target_cpf": target_cpf, "target_sq": target_sq, "valor": d["valor"], "year": d["year"]}
+                if d["donor_is_company"]:
+                    company_rels.append(entry)
+                else:
+                    person_rels.append(entry)
+            if person_rels:
+                loader.run_query_with_retry(
+                    "UNWIND $rows AS row MATCH (d:Person {cpf: row.source_key}) "
+                    "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "
+                    "OPTIONAL MATCH (c2:Person {sq_candidato: row.target_sq}) WHERE row.target_sq <> '' "
+                    "WITH d, coalesce(c1, c2) AS c, row WHERE c IS NOT NULL "
+                    "MERGE (d)-[r:DOOU {year: row.year}]->(c) SET r.valor = row.valor",
+                    person_rels,
+                )
+            if company_rels:
+                loader.run_query_with_retry(
+                    "UNWIND $rows AS row MATCH (d:Company {cnpj: row.source_key}) "
+                    "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "
+                    "OPTIONAL MATCH (c2:Person {sq_candidato: row.target_sq}) WHERE row.target_sq <> '' "
+                    "WITH d, coalesce(c1, c2) AS c, row WHERE c IS NOT NULL "
+                    "MERGE (d)-[r:DOOU {year: row.year}]->(c) SET r.valor = row.valor",
+                    company_rels,
+                )
+            total += len(donations)
+            _log.info("[tse] doacoes processadas: %d", total)
 
     def load(self) -> None:
         loader = Neo4jBatchLoader(self.driver, batch_size=500)
@@ -264,75 +307,5 @@ class TSEPipeline(Pipeline):
                 candidato_rels,
             )
 
-        # Donor nodes and DOOU relationships
-        person_donors = [
-            {"cpf": d["donor_doc"], "name": d["donor_name"]}
-            for d in self.donations
-            if not d["donor_is_company"]
-        ]
-        company_donors = [
-            {"cnpj": d["donor_doc"], "name": d["donor_name"], "razao_social": d["donor_name"]}
-            for d in self.donations
-            if d["donor_is_company"]
-        ]
-
-        if person_donors:
-            loader.load_nodes("Person", deduplicate_rows(person_donors, ["cpf"]), key_field="cpf")
-        if company_donors:
-            loader.load_nodes(
-                "Company", deduplicate_rows(company_donors, ["cnpj"]), key_field="cnpj"
-            )
-
-        # DOOU from Person donors → candidate
-        person_donation_rels = []
-        for d in self.donations:
-            if d["donor_is_company"]:
-                continue
-            target_cpf = sq_to_cpf.get(d["candidate_sq"], "")
-            person_donation_rels.append({
-                "source_key": d["donor_doc"],
-                "target_cpf": target_cpf,
-                "target_sq": d["candidate_sq"] if not target_cpf else "",
-                "valor": d["valor"],
-                "year": d["year"],
-            })
-        if person_donation_rels:
-            loader.run_query_with_retry(
-                "UNWIND $rows AS row "
-                "MATCH (d:Person {cpf: row.source_key}) "
-                "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "
-                "OPTIONAL MATCH (c2:Person {sq_candidato: row.target_sq}) "
-                "WHERE row.target_sq <> '' "
-                "WITH d, coalesce(c1, c2) AS c, row "
-                "WHERE c IS NOT NULL "
-                "MERGE (d)-[r:DOOU {year: row.year}]->(c) "
-                "SET r.valor = row.valor",
-                person_donation_rels,
-            )
-
-        # DOOU from Company donors → candidate
-        company_donation_rels = []
-        for d in self.donations:
-            if not d["donor_is_company"]:
-                continue
-            target_cpf = sq_to_cpf.get(d["candidate_sq"], "")
-            company_donation_rels.append({
-                "source_key": d["donor_doc"],
-                "target_cpf": target_cpf,
-                "target_sq": d["candidate_sq"] if not target_cpf else "",
-                "valor": d["valor"],
-                "year": d["year"],
-            })
-        if company_donation_rels:
-            loader.run_query_with_retry(
-                "UNWIND $rows AS row "
-                "MATCH (d:Company {cnpj: row.source_key}) "
-                "OPTIONAL MATCH (c1:Person {cpf: row.target_cpf}) WHERE row.target_cpf <> '' "
-                "OPTIONAL MATCH (c2:Person {sq_candidato: row.target_sq}) "
-                "WHERE row.target_sq <> '' "
-                "WITH d, coalesce(c1, c2) AS c, row "
-                "WHERE c IS NOT NULL "
-                "MERGE (d)-[r:DOOU {year: row.year}]->(c) "
-                "SET r.valor = row.valor",
-                company_donation_rels,
-            )
+        # Doações processadas em chunks para evitar OOM
+        self._load_donations_chunked(sq_to_cpf, loader)
