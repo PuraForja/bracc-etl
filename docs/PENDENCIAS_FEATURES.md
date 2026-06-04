@@ -184,3 +184,10 @@ Consulta feita em 21/05/2026 com 4 IAs externas — consenso:
 - Busca adaptativa com degree em lote é a solução correta
 - runTimeboxed como cinto de segurança, não solução principal
 - Expansão incremental por clique é o modelo ideal para investigação (Maltego, Palantir)
+
+## BUG — Frontend: grafo trava após primeiro comando de interação
+- **Sintoma:** react-force-graph-2d perde controle após primeiro drag/zoom — segundo comando não responde
+- **Provável causa:** re-renderização do grafo dessincroniza estado de drag/zoom
+- **Prioridade:** média
+- **Data:** 02/06/2026
+

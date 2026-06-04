@@ -61,3 +61,5 @@ CREATE INDEX community_id_globalpep IF NOT EXISTS FOR (n:GlobalPEP) ON (n.commun
 | community_id_globalpep | WCC — expansão de grafo via cluster de identidade |
 
 - 01/06/2026: community_id — WCC GDS resolve Person↔Partner em depth=1
+- 02/06/2026: titulo_eleitor_person — SAME_AS TSE via titulo de eleitor
+- 03/06/2026: declared_asset_id — tse_bens MERGE DeclaredAsset

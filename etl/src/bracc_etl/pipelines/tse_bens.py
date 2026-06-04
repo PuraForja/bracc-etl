@@ -65,94 +65,90 @@ class TseBensPipeline(Pipeline):
             msg = f"Data file not found: {csv_path}"
             raise FileNotFoundError(msg)
 
-        self._raw = pd.read_csv(
-            csv_path,
-            dtype=str,
-            keep_default_na=False,
-        )
-        if self.limit:
-            self._raw = self._raw.head(self.limit)
-        logger.info("[tse_bens] Extracted %d rows", len(self._raw))
+        self._csv_path = str(csv_path)
+        self._raw = pd.DataFrame()  # nao carrega em memoria
+        logger.info("[tse_bens] CSV path set: %s", csv_path)
 
     def transform(self) -> None:
-        assets: list[dict[str, Any]] = []
-        person_rels: list[dict[str, Any]] = []
-
-        for _idx, row in self._raw.iterrows():
-            cpf_raw = str(row.get("cpf", ""))
-            digits = strip_document(cpf_raw)
-
-            if len(digits) != 11:
-                continue
-
-            cpf_formatted = format_cpf(cpf_raw)
-            nome = normalize_name(str(row.get("nome_candidato", "")))
-            year = str(row.get("ano", "")).strip()
-            asset_type = str(row.get("tipo_bem", "")).strip()
-            description = str(row.get("descricao_bem", "")).strip()
-            value_raw = str(row.get("valor_bem", ""))
-            value = _parse_value(value_raw)
-            uf = str(row.get("sigla_uf", "")).strip()
-            partido = str(row.get("sigla_partido", "")).strip()
-
-            asset_id = _make_asset_id(digits, year, asset_type, value_raw.strip(), description)
-
-            assets.append({
-                "asset_id": asset_id,
-                "candidate_cpf": cpf_formatted,
-                "candidate_name": nome,
-                "asset_type": asset_type,
-                "asset_description": description,
-                "asset_value": value,
-                "election_year": int(year) if year.isdigit() else 0,
-                "uf": uf,
-                "partido": partido,
-                "source": "tse_bens",
-            })
-
-            person_rels.append({
-                "source_key": cpf_formatted,
-                "target_key": asset_id,
-                "person_name": nome,
-            })
-
-        self.assets = deduplicate_rows(assets, ["asset_id"])
-        self.person_rels = person_rels
-        logger.info(
-            "[tse_bens] Transformed: %d assets, %d person rels",
-            len(self.assets),
-            len(self.person_rels),
-        )
+        pass  # processamento feito em chunks no load
 
     def load(self) -> None:
-        loader = Neo4jBatchLoader(self.driver)
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+        loader = Neo4jBatchLoader(self.driver, batch_size=500)
+        chunk_size = 50_000
+        total_assets = 0
+        total_rels = 0
 
-        if self.assets:
-            loader.load_nodes("DeclaredAsset", self.assets, key_field="asset_id")
+        for chunk in pd.read_csv(
+            self._csv_path,
+            dtype=str,
+            keep_default_na=False,
+            encoding="latin-1",
+            chunksize=chunk_size,
+            nrows=self.limit,
+        ):
+            assets = []
+            person_rels = []
+            persons_seen: set = set()
+            unique_persons = []
 
-        # Ensure Person nodes exist for each candidate
-        persons_seen: set[str] = set()
-        unique_persons: list[dict[str, Any]] = []
-        for rel in self.person_rels:
-            cpf = rel["source_key"]
-            if cpf not in persons_seen:
-                persons_seen.add(cpf)
-                unique_persons.append({"cpf": cpf, "name": rel["person_name"]})
-        if unique_persons:
-            loader.load_nodes("Person", unique_persons, key_field="cpf")
+            for _, row in chunk.iterrows():
+                cpf_raw = str(row.get("cpf", "")).strip()
+                digits = strip_document(cpf_raw)
+                if len(digits) != 11:
+                    continue
+                cpf_formatted = format_cpf(digits)
+                nome = normalize_name(str(row.get("nome", "")))
+                year = str(row.get("ANO_ELEICAO", "")).strip()
+                asset_type = str(row.get("DS_TIPO_BEM_CANDIDATO", "")).strip()
+                description = str(row.get("DS_BEM_CANDIDATO", "")).strip()
+                value_raw = str(row.get("VR_BEM_CANDIDATO", "")).strip()
+                value = _parse_value(value_raw)
+                uf = str(row.get("SG_UF", "")).strip()
 
-        if self.person_rels:
-            query = (
-                "UNWIND $rows AS row "
-                "MATCH (p:Person {cpf: row.source_key}) "
-                "MATCH (a:DeclaredAsset {asset_id: row.target_key}) "
-                "MERGE (p)-[:DECLAROU_BEM]->(a)"
-            )
-            loader.run_query_with_retry(query, self.person_rels)
+                asset_id = _make_asset_id(digits, year, asset_type, value_raw, description)
+                assets.append({
+                    "asset_id": asset_id,
+                    "candidate_cpf": cpf_formatted,
+                    "candidate_name": nome,
+                    "asset_type": asset_type,
+                    "asset_description": description,
+                    "asset_value": value,
+                    "election_year": int(year) if year.isdigit() else 0,
+                    "uf": uf,
+                    "source": "tse_bens",
+                })
+                person_rels.append({
+                    "source_key": cpf_formatted,
+                    "target_key": asset_id,
+                    "person_name": nome,
+                })
+                if cpf_formatted not in persons_seen:
+                    persons_seen.add(cpf_formatted)
+                    unique_persons.append({"cpf": cpf_formatted, "name": nome})
 
-        logger.info(
-            "[tse_bens] Loaded: %d assets, %d persons, %d rels",
-            len(self.assets),
-            len(persons_seen),
-            len(self.person_rels),
-        )
+            if not assets:
+                continue
+
+            assets = deduplicate_rows(assets, ["asset_id"])
+            loader.load_nodes("DeclaredAsset", assets, key_field="asset_id")
+
+            if unique_persons:
+                loader.load_nodes("Person", unique_persons, key_field="cpf")
+
+            if person_rels:
+                loader.run_query_with_retry(
+                    "UNWIND $rows AS row "
+                    "MATCH (p:Person {cpf: row.source_key}) "
+                    "MATCH (a:DeclaredAsset {asset_id: row.target_key}) "
+                    "MERGE (p)-[:DECLAROU_BEM]->(a)",
+                    person_rels,
+                )
+
+            total_assets += len(assets)
+            total_rels += len(person_rels)
+            _log.info("[tse_bens] processados: %d assets, %d rels", total_assets, total_rels)
+
+        _log.info("[tse_bens] Concluido: %d assets, %d rels", total_assets, total_rels)
+

@@ -64,10 +64,8 @@ class TSEPipeline(Pipeline):
             candidatos_path, encoding="latin-1", dtype=str,
             nrows=self.limit,
         )
-        self._raw_doacoes = pd.read_csv(
-            doacoes_path, encoding="latin-1", dtype=str,
-            nrows=self.limit,
-        )
+        self._doacoes_path = str(doacoes_path)
+        self._raw_doacoes = pd.DataFrame()  # nao carrega em memoria
 
     def transform(self) -> None:
         self._transform_candidates()
