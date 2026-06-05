@@ -36,7 +36,7 @@ os docs operacionais corrigindo referências antigas, status desatualizados e in
 - [ ] Verificar referências a docs antigos
 - [ ] Adicionar entradas das sessões 01-03/06/2026
 
-### 3. `docs/operacional/SETUP_INDICES.md` ⏳ PENDENTE
+### 3. `docs/operacional/SETUP_INDICES.md` ✅ CONCLUÍDO 04/06/2026
 - [ ] Verificar se índices criados em 01-03/06 estão listados:
   - community_id_person, community_id_partner, community_id_globalpep
   - titulo_eleitor_person

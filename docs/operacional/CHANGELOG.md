@@ -635,3 +635,6 @@ Proximo passo: query extra SAME_AS->SOCIO_DE no graph_expand.cypher
 [ ] Bug frontend — react-force-graph-2d trava após drag/zoom
 [ ] CNES download_cnes_am.py + pipeline
 [ ] Pente fino documentação — ver TAREFA_PENTE_FINO_DOCS.md
+
+### [04/06/2026] — SETUP_INDICES.md — fix docker compose
+Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os comandos

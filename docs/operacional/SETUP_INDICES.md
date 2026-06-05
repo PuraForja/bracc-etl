@@ -6,7 +6,7 @@ O orchestrator cria estes índices automaticamente na primeira execução via se
 ## Índices de Performance (obrigatórios)
 
 ```bash
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "
 CREATE INDEX expense_id IF NOT EXISTS FOR (n:Expense) ON (n.expense_id);
 CREATE INDEX person_cpf IF NOT EXISTS FOR (n:Person) ON (n.cpf);
 CREATE INDEX person_person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id);
@@ -34,7 +34,7 @@ CREATE INDEX bid_id IF NOT EXISTS FOR (n:Bid) ON (n.bid_id)
 ## Verificar índices existentes
 
 ```bash
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD name, labelsOrTypes, properties RETURN name, labelsOrTypes, properties ORDER BY labelsOrTypes"
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD name, labelsOrTypes, properties RETURN name, labelsOrTypes, properties ORDER BY labelsOrTypes"
 ```
 
 ## Histórico
@@ -48,7 +48,7 @@ docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD na
 ## Índices WCC — community_id
 Criados após rodar `gds.wcc.write` para resolver identidade entre Person/Partner/GlobalPEP.
 ```bash
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "
 CREATE INDEX community_id_person IF NOT EXISTS FOR (n:Person) ON (n.community_id);
 CREATE INDEX community_id_partner IF NOT EXISTS FOR (n:Partner) ON (n.community_id);
 CREATE INDEX community_id_globalpep IF NOT EXISTS FOR (n:GlobalPEP) ON (n.community_id)
