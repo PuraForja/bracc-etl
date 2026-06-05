@@ -30,7 +30,7 @@ os docs operacionais corrigindo referências antigas, status desatualizados e in
 ### 1. `docs/operacional/ORIENTACOES_IA.md` ✅ CONCLUÍDO 03/06/2026
 - Reescrito completamente — caminhos corrigidos, regras atualizadas
 
-### 2. `docs/operacional/CHANGELOG.md` ⏳ PENDENTE
+### 2. `docs/operacional/CHANGELOG.md` ✅ CONCLUÍDO 03/06/2026
 - [ ] Substituir todas ocorrências de `br-acc-novo` por `bracc`
 - [ ] Substituir caminhos Windows `C:\Users\Rolim\Downloads` por `/home/rolim`
 - [ ] Verificar referências a docs antigos
