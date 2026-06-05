@@ -55,6 +55,13 @@ LABEL_MAP[tse_filiados]="Person"
 LABEL_MAP[un_sanctions]="InternationalSanction"
 LABEL_MAP[viagens]="GovTravel"
 LABEL_MAP[world_bank]="InternationalSanction"
+
+# Timeouts por fonte (segundos) — padrão 180s
+declare -A TIMEOUT_MAP
+TIMEOUT_MAP[tse]=1800
+TIMEOUT_MAP[cnpj]=1800
+TIMEOUT_MAP[camara]=1800
+TIMEOUT_MAP[transparencia]=600
 # ── AMAZONAS ──────────────────────────────────────────────────────────────────
 LABEL_MAP[transparencia_am]="Person"
 LABEL_MAP[ibama_am]="Sanction"
@@ -356,7 +363,7 @@ run_download() {
 
 run_import() {
     local fonte="$1"
-    local WATCHDOG_TIMEOUT=180
+    local WATCHDOG_TIMEOUT=${TIMEOUT_MAP[$fonte]:-180}
     log_info "Importando $fonte..."
     cd "$ETL_DIR"
     local PROGRESS_FILE="$ROOT/bracc_progress_${fonte}.tmp"
