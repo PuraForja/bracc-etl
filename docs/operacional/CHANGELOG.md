@@ -23,19 +23,19 @@
 # 1. Docker rodando?
 docker ps | grep neo4j
 # 2. Se não: subir
-cd ~/Downloads/br-acc-novo && docker compose up -d
+cd ~/bracc && docker compose up -d
 # 3. Estado do banco
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "MATCH (n) RETURN labels(n)[0] as tipo, count(n) as total ORDER BY total DESC"
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "MATCH (n) RETURN labels(n)[0] as tipo, count(n) as total ORDER BY total DESC"
 # 4. Últimas importações
-tail -20 ~/Downloads/br-acc-novo/pipeline_imports.log | grep -v "contratacoes\|HTTP Request\|WARNING Network"
+tail -20 ~/bracc/pipeline_imports.log | grep -v "contratacoes\|HTTP Request\|WARNING Network"
 # 5. PNCP rodando?
 ps aux | grep pncp | grep -v grep
 # 6. Transparência AM rodando?
 ps aux | grep transparencia_am | grep -v grep
 # 7. Progresso PNCP
-tail -3 ~/Downloads/br-acc-novo/download_pncp.log
+tail -3 ~/bracc/download_pncp.log
 # 8. O que falta
-cat ~/Downloads/br-acc-novo/docs/CHANGELOG.md | grep "\[ \]"
+cat ~/bracc/docs/CHANGELOG.md | grep "\[ \]"
 ```
 
 ---
@@ -80,7 +80,7 @@ transferegov.py, cnpj.py
 Causa: campo `finance_id` sem índice → full scan em cada MERGE.
 **Solução:**
 ```bash
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme \
+docker compose exec neo4j cypher-shell -u neo4j -p changeme \
   "CREATE INDEX finance_id IF NOT EXISTS FOR (n:MunicipalFinance) ON (n.finance_id)"
 ```
 **Lição:** Sempre verificar índices antes de importar pipeline grande.
@@ -174,7 +174,7 @@ Nova URL: `https://olinda.bcb.gov.br/olinda/servico/Gepad_QuadroPenalidades/vers
 **Horário:** 23:41
 **Comando:**
 ```powershell
-docker run --rm -v br-acc-novo_neo4j-data:/data -v C:\Users\Rolim\Downloads:/backup alpine tar czf /backup/neo4j-backup-20260505.tar.gz /data
+docker run --rm -v bracc_neo4j-data:/data -v /home/rolim:/backup alpine tar czf /backup/neo4j-backup-20260505.tar.gz /data
 ```
 **Testado:** ✅ arquivo verificado (10.245.169.415 bytes)
 
@@ -261,7 +261,7 @@ bndes, ibama, inep, pgfn, tcu, comprasnet, transferegov — só pipeline, sem do
 Causa: expense_id sem índice → full scan em 87M nodes por MERGE.
 **Solução:**
 ```bash
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "
 CREATE INDEX expense_id IF NOT EXISTS FOR (n:Expense) ON (n.expense_id);
 CREATE INDEX person_cpf IF NOT EXISTS FOR (n:Person) ON (n.cpf);
 CREATE INDEX company_cnpj IF NOT EXISTS FOR (n:Company) ON (n.cnpj);
@@ -300,7 +300,7 @@ loader.load_relationships(...)
 
 **Verificar pendentes:**
 ```bash
-grep -L "open_session" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines/*.py
+grep -L "open_session" ~/bracc/etl/src/bracc_etl/pipelines/*.py
 ```
 
 **Pipelines pendentes do fix (por impacto):**
@@ -330,7 +330,7 @@ grep -L "open_session" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines/*.py
 **Duração:** ~3h50 (17:55 → 21:46).
 **Comando usado:**
 ```bash
-cd ~/Downloads/br-acc-novo/etl && source ~/.local/bin/env && uv run bracc-etl run --source camara --neo4j-password changeme --data-dir ~/Downloads/br-acc-novo/data 2>&1 | tee ~/Downloads/br-acc-novo/camara_debug.log
+cd ~/bracc/etl && source ~/.local/bin/env && uv run bracc-etl run --source camara --neo4j-password changeme --data-dir ~/bracc/data 2>&1 | tee ~/bracc/camara_debug.log
 ```
 **Obs:** Rodar pipeline direto (não pelo orchestrator) para ver log em tempo real.
 
@@ -343,7 +343,7 @@ cd ~/Downloads/br-acc-novo/etl && source ~/.local/bin/env && uv run bracc-etl ru
 **Horário:** 00:09
 **Comando:**
 ```bash
-MSYS_NO_PATHCONV=1 docker run --rm -v br-acc-novo_neo4j-data:/data -v C:/Users/Rolim/Downloads:/backup alpine tar czf /backup/neo4j-backup-20260509.tar.gz /data
+MSYS_NO_PATHCONV=1 docker run --rm -v bracc_neo4j-data:/data -v /home/rolim:/backup alpine tar czf /backup/neo4j-backup-20260509.tar.gz /data
 ```
 
 ---
@@ -361,7 +361,7 @@ Spinner no processo principal lê o arquivo e imprime linha nova por arquivo con
 
 ### [10/05/2026] — orchestrator.sh — MODO_TESTE — feat ✅
 **O que faz:** `MODO_TESTE=Y` pula leitura Neo4j (~60s), uv sync (~10s) e PNCP.
-**Uso:** `MODO_TESTE=Y bash ~/Downloads/br-acc-novo/orchestrator.sh --force camara`
+**Uso:** `MODO_TESTE=Y bash ~/bracc/orchestrator.sh --force camara`
 
 ### [10/05/2026] — orchestrator.sh — watchdog — feat ✅
 **O que faz:** Se pipeline ficar 3 minutos sem nova linha no log, imprime aviso:
@@ -435,16 +435,16 @@ com reinício automático (log: transparencia_am.log).
 
 ```bash
 # Estado do banco
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "MATCH (n) RETURN labels(n)[0] as tipo, count(n) as total ORDER BY total DESC"
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "MATCH (n) RETURN labels(n)[0] as tipo, count(n) as total ORDER BY total DESC"
 
 # Pipelines sem fix sessão única
-grep -L "open_session" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines/*.py
+grep -L "open_session" ~/bracc/etl/src/bracc_etl/pipelines/*.py
 
 # Índices Neo4j
-docker exec bracc-neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD name, labelsOrTypes, properties RETURN name, labelsOrTypes, properties"
+docker compose exec neo4j cypher-shell -u neo4j -p changeme "SHOW INDEXES YIELD name, labelsOrTypes, properties RETURN name, labelsOrTypes, properties"
 
 # run_query sem retry (deve retornar VAZIO)
-grep -r "loader\.run_query(" ~/Downloads/br-acc-novo/etl/src/bracc_etl/pipelines/ | grep -v ".bak" | grep -v "run_query_with_retry"
+grep -r "loader\.run_query(" ~/bracc/etl/src/bracc_etl/pipelines/ | grep -v ".bak" | grep -v "run_query_with_retry"
 ```
 
 ---
@@ -583,3 +583,55 @@ MASTER v5-v34 copiados para ~/bracc/docs/ — v1-v4, v18, v29 perdidos
 Problema: Person->SAME_AS->Partner->SOCIO_DE->Company = 3 saltos — depth=2 nao alcanca
 LIMIT aumentado 500->2000 — nao resolveu
 Proximo passo: query extra SAME_AS->SOCIO_DE no graph_expand.cypher
+
+## 2026-06-01 a 03 — GDS + WCC + TSE bens
+
+### [01/06/2026] — GDS 2.13.10 instalado + heap corrigido ✅
+**Problema:** Neo4j heap limitado a 1GB — .env tinha NEO4J_HEAP_MAX=1G sobrescrevendo docker-compose.yml
+**Fix:** NEO4J_HEAP_MAX=8G no .env
+**GDS:** graph-data-science adicionado ao NEO4J_PLUGINS
+
+### [01/06/2026] — WCC community_id + graph_expand_d1.cypher ✅
+**Problema:** Person→SAME_AS→Partner→SOCIO_DE→Company = 3 saltos, depth=2 não alcançava
+**Solução:** WCC escreve community_id em 21M nodes. graph_expand_d1.cypher reescrito para usar community_id indexado.
+**Índices criados:** community_id_person, community_id_partner, community_id_globalpep
+**Resultado:** Diego Roberto Afonso — 4 empresas visíveis no depth=1
+
+### [01/06/2026] — SAME_AS em escala ✅
+- Person↔GlobalPEP: 7.217 relações por CPF
+- TSE histórico: 189k relações (candidatos 2024 sem CPF cruzados com 2016-2022)
+- link_tse_nocpf.py: script novo
+
+### [02/06/2026] — TSE pipeline corrigido ✅
+- download_tse.py: DT_NASCIMENTO + NR_TITULO_ELEITORAL adicionados
+- pipelines/tse.py: doações reescritas para chunked 50k linhas (antes travava com 3.1M)
+- Índice titulo_eleitor_person criado
+- 6.045.442 doações processadas
+
+### [03/06/2026] — TSE Bens Declarados ✅
+- download_tse_bens_cdn.py: criado — baixa CDN TSE sem BigQuery
+- pipelines/tse_bens.py: reescrito para chunked 50k linhas
+- Índice declared_asset_id criado
+- 5.636.173 DeclaredAsset + 11.322.572 DECLAROU_BEM
+
+### [03/06/2026] — Documentação reorganizada ✅
+- docs/ reorganizado em operacional/ referencia/ arquivo/ publico/
+- CATALOGO_FONTES.md: consolidação de 5 arquivos
+- DOWNLOADS_STATUS.md: fusão de CORRECOES + URLS_CORRETAS
+- ORIENTACOES_IA.md, PENDENCIAS_FEATURES.md, DOWNLOADS_STATUS.md reescritos com padrão
+- ORIENTACOES_PIPELINE.md criado
+- BRACC_INSTALLER_ESCOPO.md criado
+
+## PENDÊNCIAS ATUAIS (03/06/2026)
+[ ] Backup Neo4j — URGENTE (último: 31/05)
+[ ] TSE Filiação Partidária — download CDN sem BigQuery
+[ ] BCB Penalidades — reescrever com API Olinda
+[ ] PEP CGU — token email descartável
+[ ] TCE-AM — auditoria contratos estaduais
+[ ] INPE PRODES + SICAR
+[ ] Amom Mandel — 4 nodes separados
+[ ] Fix sessão única — senado_cpis, cnpj, etc.
+[ ] Expansão adaptativa depth=2
+[ ] Bug frontend — react-force-graph-2d trava após drag/zoom
+[ ] CNES download_cnes_am.py + pipeline
+[ ] Pente fino documentação — ver TAREFA_PENTE_FINO_DOCS.md
