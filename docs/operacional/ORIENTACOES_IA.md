@@ -1,11 +1,13 @@
 # ORIENTAÇÕES PARA A IA — LEIA ANTES DE QUALQUER COISA
-> Atualizado em 03/06/2026
-> Cada regra foi alinhada com o usuário após erros reais. Não ignore nenhuma.
+> Criado em 01/05/2026
+> Este arquivo define como a IA deve se comportar neste projeto.
+> Não ignore nenhum item — cada um foi alinhado com o usuário após erros reais.
 
 ---
 
 ## QUEM É ALBERTO (ROLIM)
-- Membro de partido político de oposição no Amazonas — Partido Missão
+
+- Membro de partido político de oposição no Amazonas
 - Não é programador profissional mas aprende rápido
 - Quer resultados práticos, não teoria
 - Trabalha com dados públicos para inteligência política
@@ -14,173 +16,177 @@
 ---
 
 ## REGRA #1 — LEIA O CHANGELOG ANTES DE QUALQUER COISA
+
 ```bash
-cat ~/bracc/docs/operacional/CHANGELOG.md | tail -50 && echo "OK"
+cat ~/Downloads/br-acc-novo/docs/CHANGELOG_TECNICO.md
 ```
-Sempre leia antes de sugerir qualquer correção de código.
-Se já foi feito antes → não refaça.
+
+**Sempre** leia este arquivo antes de sugerir qualquer correção de código.
+Se já foi feito antes → não refaça. Ponto final.
 
 ---
 
 ## REGRA #2 — VOCÊ NÃO TEM ACESSO AO GITHUB
-Não tente fazer login no GitHub. Trabalhe só com arquivos locais no terminal.
-Quando precisar ver um arquivo, peça para o Rolim colar o conteúdo ou rodar `cat ARQUIVO`.
+
+Não tente fazer login no GitHub. Não tente acessar URLs do GitHub.
+GitHub bloqueia robôs. Você trabalha com os arquivos locais no terminal do Rolim.
+Quando precisar ver um arquivo, peça para ele colar o conteúdo ou rodar `cat ARQUIVO`.
 
 ---
 
 ## REGRA #3 — MONITORAMENTO É SEU TRABALHO
-Quando acompanhar downloads e importações:
+
+Quando o Rolim pedir para acompanhar downloads e importações, faça assim:
+
 1. Peça o output dos logs com um único comando
-2. Avalie o que está rodando, travou ou terminou
+2. Avalie o que está rodando, o que travou, o que terminou
 3. Se travou: identifique a causa, corrija, relance
 4. Não espere ele perceber que travou — seja proativo
 
 **Comando padrão de monitoramento:**
 ```bash
-ps aux | grep -E "orchestrator|bracc-etl|python" | grep -v grep && echo "OK"
-```
-
-**Verificar transações Neo4j:**
-```bash
-cd ~/bracc && docker compose exec neo4j cypher-shell -u neo4j -p changeme "SHOW TRANSACTIONS YIELD transactionId, status, elapsedTime, currentQuery RETURN transactionId, status, elapsedTime, currentQuery" && echo "OK"
+tail -5 ~/Downloads/br-acc-novo/pipeline_imports.log && echo "---" && \
+tail -3 ~/Downloads/br-acc-novo/download_pncp.log && echo "---" && \
+ps aux | grep bracc-etl | grep -v grep
 ```
 
 ---
 
 ## REGRA #4 — NUNCA MANDE COMANDOS PERIGOSOS SEM VERIFICAR
+
 Antes de qualquer `git add`, `rm`, ou comando destrutivo:
 - Verifique o que será afetado
-- O `.gitignore` protege `data/`, `*.log`, `*.zip`
+- Lembre que tem 28G+ de dados que NÃO devem ir para o GitHub
+- O `.gitignore` já protege `data/`, `*.log`, `*.zip`, etc.
 - Nunca rode `git add -A` direto — sempre verifique com `git status --short` primeiro
-- Avisar ANTES de qualquer comando que altera banco, arquivo ou config
 
 ---
 
 ## REGRA #5 — SEQUÊNCIA OBRIGATÓRIA DE IMPORTAÇÃO
-1. Downloads primeiro — nunca importar enquanto baixa da mesma fonte
-2. Uma importação por vez — Neo4j não suporta paralelo
-3. Backup NUNCA simultâneo com importação
-4. Backup SEMPRE após fila terminar
 
-**Após qualquer importação que cria SAME_AS — re-rodar WCC obrigatório:**
-```bash
-cd ~/bracc && docker compose exec neo4j cypher-shell -u neo4j -p changeme "CALL gds.graph.drop('identity-graph') YIELD graphName" && echo "OK"
-cd ~/bracc && docker compose exec neo4j cypher-shell -u neo4j -p changeme "CALL gds.graph.project('identity-graph', ['Person','Partner','GlobalPEP','OffshoreOfficer'], {SAME_AS: {orientation: 'UNDIRECTED'}}) YIELD graphName, nodeCount, relationshipCount" && echo "OK"
-cd ~/bracc && docker compose exec neo4j cypher-shell -u neo4j -p changeme "CALL gds.wcc.write('identity-graph', {writeProperty: 'community_id'}) YIELD componentCount, nodePropertiesWritten" && echo "OK"
+1. **Downloads primeiro** — nunca importar enquanto baixa da mesma fonte
+2. **Uma importação por vez** — Neo4j não suporta paralelo
+3. **Backup NUNCA simultâneo com importação**
+4. **Backup SEMPRE após fila terminar** — antes de qualquer outra coisa
+
+**Ordem de importação (leve → pesado):**
+```
+cepim → bcb → ceaf → senado → sanctions → siconfi → icij →
+camara → transparencia → siop → opensanctions → tse → pncp
 ```
 
 ---
 
-## REGRA #6 — AVISE QUANDO A SESSÃO ESTIVER NO LIMITE
+## REGRA #6 — SINAIS SONOROS SÃO OBRIGATÓRIOS
+
+Todo comando longo deve ter beep no final:
+```bash
+&& powershell.exe -Command "[console]::beep(1000,300); [console]::beep(1200,300)"
+```
+Fila completa usa 3 beeps:
+```bash
+&& powershell.exe -Command "[console]::beep(1000,500); [console]::beep(1200,500); [console]::beep(1500,1000)"
+```
+
+---
+
+## REGRA #7 — AVISE QUANDO A SESSÃO ESTIVER NO LIMITE
+
 Após 30-40 trocas de mensagens, avise:
-> "⚠️ Esta conversa está próxima do limite. Vou gerar o vXX agora antes de continuar."
-Então gere novo MASTER e commite no GitHub.
+> "⚠️ Esta conversa está próxima do limite. Vou gerar o v[XX] agora antes de continuar."
+
+Então gere o novo MASTER .md e lembre de commitar no GitHub.
 
 ---
 
-## REGRA #7 — COMO DETECTAR TRAVAMENTO
+## REGRA #8 — COMO DETECTAR TRAVAMENTO
+
+O processo de importação morre silenciosamente sem logar erro.
+Verifique sempre os dois:
 ```bash
-ps aux | grep -E "orchestrator|bracc-etl" | grep -v grep && echo "OK"
+ps aux | grep bracc-etl | grep -v grep   # vazio = morto
+tail -5 ~/Downloads/br-acc-novo/pipeline_imports.log  # parou há >10min = travado
 ```
-Vazio = processo morto. Re-rodar a partir da fonte que travou.
+Se morreu: relance a fila a partir da fonte que travou.
 
 ---
 
-## REGRA #8 — REGISTRO OBRIGATÓRIO DE ALTERAÇÕES
+## REGRA #9 — REGISTRO OBRIGATÓRIO DE ALTERAÇÕES
+
 Toda vez que alterar um arquivo `.py`:
-1. Faça a alteração
-2. Atualize `docs/operacional/CHANGELOG.md` com data, arquivo, problema, solução
-3. Lembre Rolim de commitar
+1. Crie backup: `cp ARQUIVO.py ARQUIVO.py.bak`
+2. Faça a alteração
+3. Atualize `docs/CHANGELOG_TECNICO.md` com data, arquivo, problema, solução
+4. Lembre Rolim de commitar no GitHub
 
 ---
 
-## REGRA #9 — AO FINAL DE CADA SESSÃO
-1. Gere novo `docs/operacional/CONTEXTO_PROJETO_AM_vXX_MASTER.md` (incrementar versão)
-2. Atualize `docs/operacional/CHANGELOG.md`
-3. Atualize `docs/operacional/ESTADO_ATUAL.md` com totais do banco
-4. Commite:
+## REGRA #10 — AO FINAL DE CADA SESSÃO
+
+Faça estes 3 passos obrigatoriamente:
+1. Gere novo `CONTEXTO_PROJETO_AM_vXX_MASTER.md` (incrementar versão)
+2. Atualize `CHANGELOG_TECNICO.md` se houve alterações de código
+3. Mande comando para commitar os 4 arquivos no GitHub:
+
 ```bash
-cd ~/bracc && git add docs/ etl/scripts/ etl/src/ orchestrator.sh api/ && git commit -m "sync $(date '+%Y-%m-%d %H:%M')" && git push origin main && echo "OK"
+cd ~/Downloads/br-acc-novo && \
+  git add docs/ && \
+  git commit -m "docs: contexto vXX + changelog atualizado $(date '+%Y-%m-%d')" && \
+  git push origin main
 ```
-
----
-
-## REGRA #10 — NOVOS PIPELINES E DOWNLOADS
-Todo novo `download_*.py` DEVE ser registrado no orchestrator em 3 lugares:
-1. `LABEL_MAP[fonte]="LabelNeo4j"`
-2. `TIMEOUT_MAP[fonte]=600` (padrão 180, fontes pesadas 1800)
-3. Na lista de fontes da fila principal
-
-Todo novo pipeline com CSV > 500k linhas DEVE usar `chunksize=50_000`.
-Todo novo campo usado em MATCH/MERGE DEVE ter índice criado ANTES da importação.
-
----
-
-## REGRA #11 — CHANGELOG ÚNICO
-O único CHANGELOG oficial é: `docs/operacional/CHANGELOG.md`
-- `etl/scripts/CHANGELOG.md` — descontinuado, não atualizar
-- `~/bracc/CHANGELOG.md` (raiz) — é o CHANGELOG público do repo, atualizar só em releases
 
 ---
 
 ## O QUE NÃO FAZER — ERROS QUE JÁ ACONTECERAM
+
 | Erro | O que aconteceu | Como evitar |
 |---|---|---|
-| Não detectou travamento | Processo morreu, percebeu horas depois | Verificar com `ps aux` |
-| Sugeriu correção já feita | Refez trabalho | Ler CHANGELOG primeiro |
-| Mandou `git add -A` | Quase subiu dados grandes | Verificar com `git status` antes |
+| Tentou logar no GitHub | Perdeu tempo — GitHub bloqueia robôs | Trabalhe só com arquivos locais |
+| Não detectou travamento por horas | Processo morreu às 18h, percebeu às 23h | Sempre verificar com `ps aux` |
+| Sugeriu correção já feita | Refez trabalho desnecessário | Ler CHANGELOG primeiro |
+| Mandou `git add -A` | Quase subiu 28G de dados | Verificar com `git status` antes |
 | Não avisou sobre limite da sessão | Contexto perdido | Avisar após 30-40 trocas |
 | Fez importações em paralelo | Neo4j travou | Sempre sequencial |
-| Criou campo sem índice | Query travou com full scan | Índice ANTES de importar |
-| Pipeline sem chunksize | OOM com CSV grande | chunksize=50_000 obrigatório |
-| Não re-rodou WCC após SAME_AS | community_id desatualizado | WCC após toda importação com SAME_AS |
 
 ---
 
 ## ESTRUTURA DO PROJETO
-~/bracc/
-├── CLAUDE.md                      ← LEIA PRIMEIRO — contexto para IA
+
+```
+br-acc-novo/
 ├── docker-compose.yml
-├── orchestrator.sh
-├── .env                           ← NEO4J_HEAP_MAX=8G
-├── docs/
-│   ├── operacional/               ← docs de trabalho ativos
-│   │   ├── CONTEXTO_PROJETO_AM_v35_MASTER.md
-│   │   ├── ESTADO_ATUAL.md        ← estado do banco — atualizar toda sessão
-│   │   ├── CHANGELOG.md           ← changelog oficial
-│   │   ├── ORIENTACOES_IA.md      ← este arquivo
-│   │   ├── ORIENTACOES_PIPELINE.md
-│   │   ├── SETUP_INDICES.md
-│   │   ├── PENDENCIAS_FEATURES.md
-│   │   ├── DOWNLOADS_STATUS.md
-│   │   └── BRACC_INSTALLER_ESCOPO.md
-│   ├── referencia/
-│   │   └── CATALOGO_FONTES.md     ← todas as fontes de dados
-│   ├── arquivo/                   ← histórico, não editar
-│   └── publico/                   ← docs do repo público original
+├── docs/                          ← 4 arquivos de referência ficam aqui
+│   ├── CONTEXTO_PROJETO_AM_vXX_MASTER.md
+│   ├── CHANGELOG_TECNICO.md
+│   ├── CORRECOES_SCRIPTS_DOWNLOAD.md
+│   └── URLS_CORRETAS.md
 ├── etl/
-│   ├── scripts/                   ← download_FONTE.py
+│   ├── scripts/                   ← download_FONTE.py (baixar dados)
 │   └── src/bracc_etl/
-│       ├── pipelines/             ← FONTE.py
-│       ├── loader.py
-│       └── runner.py
-└── data/                          ← dados brutos (no .gitignore)
-
----
-
-## INFRAESTRUTURA
-| Sistema | Acesso |
-|---|---|
-| Neo4j browser | http://localhost:7474 — neo4j / changeme |
-| API | http://localhost:8000 |
-| Frontend | http://localhost:3000 — teste@bracc.com / senha123 / invite: rolim |
-| GitHub | https://github.com/PuraForja/bracc-etl |
-
-```bash
-# Subir tudo
-cd ~/bracc && docker compose up -d && echo "OK"
+│       ├── pipelines/             ← FONTE.py (importar para Neo4j)
+│       ├── loader.py              ← Neo4jBatchLoader
+│       └── runner.py              ← orquestra pipelines
+└── data/                          ← dados brutos (NO .gitignore — não commitar!)
 ```
 
 ---
 
+## INFRAESTRUTURA RÁPIDA
+
+| Sistema | Acesso |
+|---|---|
+| Neo4j browser | http://localhost:7474 |
+| API | http://localhost:8000 |
+| Frontend | http://localhost:3000 |
+| Neo4j user/pass | neo4j / changeme |
+| Frontend login | teste@bracc.com / senha123 |
+
+```bash
+# Subir tudo
+cd ~/Downloads/br-acc-novo && docker compose up -d
+```
+
+---
+
+*Criado em 01/05/2026*
 *Atualizar este arquivo se novas regras forem alinhadas com o Rolim*
