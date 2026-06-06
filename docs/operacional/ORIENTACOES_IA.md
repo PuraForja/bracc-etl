@@ -190,3 +190,12 @@ cd ~/Downloads/br-acc-novo && docker compose up -d
 
 *Criado em 01/05/2026*
 *Atualizar este arquivo se novas regras forem alinhadas com o Rolim*
+
+## REGRA #10 — ATUALIZAÇÃO (05/06/2026)
+**ATENÇÃO — pipelines rodados manualmente também precisam ser registrados:**
+- Mesmo que o pipeline já foi rodado, validado e tem dados no Neo4j
+- Mesmo que foi feito fora do orquestrador por qualquer motivo
+- O registro no orquestrador é OBRIGATÓRIO antes de encerrar a sessão
+- Sem registro → o orquestrador não saberá re-rodar, atualizar ou monitorar a fonte
+- Sem registro → o comando `list` mostrará a fonte como inexistente
+- Sem registro → o comando `check` não testará o link da fonte
