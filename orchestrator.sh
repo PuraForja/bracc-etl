@@ -76,6 +76,7 @@ TIMEOUT_MAP[camara]=1800
 TIMEOUT_MAP[tse_bens]=1800
 TIMEOUT_MAP[tse_filiados]=1800
 TIMEOUT_MAP[transparencia_am]=1800
+TIMEOUT_MAP[tce_am]=900
 TIMEOUT_MAP[transparencia]=600
 TIMEOUT_MAP[siconfi]=900
 TIMEOUT_MAP[datasus]=600
@@ -110,6 +111,7 @@ URL_MAP[eu_sanctions]="https://webgate.ec.europa.eu/fsd/fsf/public/files/csvFull
 URL_MAP[world_bank]="https://apigwext.worldbank.org/dvsvc/v1.0/json/APPLICATION/ADOBE_PDF/FIRM/INDVIDUAL"
 URL_MAP[cvm]="https://www.gov.br/cvm/pt-br/assuntos/noticias/2024"
 URL_MAP[bcb]="https://www.bcb.gov.br/acessoinformacao/legado?url=https://www.bcb.gov.br/fis/info/penalidades.asp"
+URL_MAP[tce_am]="https://econtasapi.tce.am.gov.br/transparencia/dados-abertos/unidades"
 URL_MAP[ibama]="https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php"
 URL_MAP[leniency]="https://www.portaltransparencia.gov.br/download-de-dados/acordos-leniencia"
 URL_MAP[cpgf]="https://www.portaltransparencia.gov.br/download-de-dados/cartoes"
@@ -175,6 +177,7 @@ DEFAULT_QUEUE=(
 
 AMAZONAS_QUEUE=(
     transparencia_am
+    tce_am
     # ibama_am     # a implementar — embargos ambientais AM
     # inpe_prodes  # a implementar — desmatamento
     # sicar        # a implementar — Cadastro Ambiental Rural
@@ -497,7 +500,7 @@ _run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    local INCREMENTAL_SOURCES=("transparencia_am")
+    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am" "pncp")
     local is_incremental=0
     for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
     if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then

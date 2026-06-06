@@ -638,3 +638,11 @@ Proximo passo: query extra SAME_AS->SOCIO_DE no graph_expand.cypher
 
 ### [04/06/2026] — SETUP_INDICES.md — fix docker compose
 Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os comandos
+
+### [05/06/2026] — TCE-AM — pipeline registrado no orchestrator ✅
+- tce_am adicionado na AMAZONAS_QUEUE
+- URL_MAP[tce_am] cadastrada para o check de links
+- tce_am adicionado em INCREMENTAL_SOURCES — evita pular download incremental
+- CATALOGO_FONTES.md: tce_am marcado como implementado, tse_bens contagem corrigida
+- TAREFA_PENTE_FINO_DOCS.md: itens 4, 5, 6, 7 marcados como concluídos
+- ORIENTACOES_PIPELINE.md: reescrito com regras completas incluindo orchestrator

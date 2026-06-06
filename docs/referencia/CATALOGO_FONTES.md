@@ -11,11 +11,12 @@
 |---|---|---|---|---|
 | cnpj | Receita Federal — empresas e sócios | 40.6M Company + 17.7M Partner | 17.7M SOCIO_DE | Base principal do grafo |
 | tse | TSE candidaturas 2016-2024 | 3.1M Person | 6M DOOU, CANDIDATO_EM | Reimportado 02/06 com data_nascimento |
-| tse_bens | TSE bens declarados 2006-2024 | 2.8M DeclaredAsset | 11.3M DECLAROU_BEM | Importado 03/06 |
+| tse_bens | TSE bens declarados 2006-2024 | 5.6M DeclaredAsset | 11.3M DECLAROU_BEM | Importado 03/06 |
 | transparencia_am | Servidores AM 80 órgãos 2014-2026 | 10.2M GovEmployee | EMPREGADO_EM | |
 | datasus | CNES estabelecimentos saúde | 612k Health | 435k OPERA_UNIDADE | |
 | siconfi | Finanças municipais | 3.4M MunicipalFinance | DECLAROU_FINANCA | |
 | pncp | Licitações federais | 2M Bid | 2M LICITOU | |
+| tce_am | TCE-AM contratos e licitações AM | Contract + Bid | VENCEU, CONTRATADO_POR, LICITOU_AM | Importado 05/06 |
 | camara | Despesas parlamentares CEAP | 3.8M Expense | GASTOU, FORNECEU | |
 | transparencia | Contratos, emendas, viagens federal | 64k Contract | VENCEU, AUTOR_EMENDA | |
 | senado | CPIs, despesas senado | 105 CPI | | |
@@ -50,7 +51,7 @@
 | tse_filiados | Requer BigQuery ou download manual | Download por partido/UF do CDN TSE | Alta |
 | inpe_prodes | Não implementado | CDN INPE — terrabrasilis.dpi.inpe.br | Alta AM |
 | sicar | Não implementado | car.gov.br/publico/municipios/downloads | Alta AM |
-| tce_am | Não implementado | tce.am.gov.br — auditoria contratos estaduais | Alta AM |
+| tce_am | ✅ Implementado 05/06/2026 | download_tce_am.py + pipelines/tce_am.py | Alta AM |
 | datajud | Credenciais não operacionais | Requer chave API CNJ | Alta |
 | ibama | Não baixado | Script disponível | Alta AM |
 | comprasnet | Stale — precisa atualização | Re-download | Média |
@@ -67,7 +68,7 @@
 
 | # | Fonte | URL | Relevância |
 |---|---|---|---|
-| 1 | tce_am | https://www.tce.am.gov.br/ | Auditoria contratos estaduais |
+| 1 | tce_am | https://www.tce.am.gov.br/ | ✅ Implementado 05/06/2026 |
 | 2 | mapbiomas_alertas | https://alerta.mapbiomas.org/api | Desmatamento |
 | 3 | anm_mining_rights | https://dados.gov.br/dados/conjuntos-dados/anm | Mineração |
 | 4 | sicar_rural_registry | https://www.car.gov.br/publico/municipios/downloads | Propriedades rurais |

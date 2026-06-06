@@ -180,3 +180,10 @@ Status: ABERTO
 - NUNCA misturar BUG com FEATURE com PENDENCIA
 - SEMPRE usar o padrão acima — não inventar formato novo
 - Caminhos SEMPRE relativos a `~/bracc/` — nunca `~/Downloads/br-acc-novo/`
+
+## download_transparencia_am.py — lista de órgãos dinâmica
+- Atualmente a lista de 80+ órgãos está hardcoded no script
+- Melhoria: consultar lista dinamicamente via API WordPress antes de baixar
+- Assim novos órgãos são capturados automaticamente no update
+- URL de consulta: https://www.transparencia.am.gov.br/wp-admin/admin-ajax.php
+- Baixo risco de breaking change — portal raramente muda estrutura

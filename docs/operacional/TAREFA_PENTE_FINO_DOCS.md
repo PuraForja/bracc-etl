@@ -44,20 +44,20 @@ os docs operacionais corrigindo referências antigas, status desatualizados e in
 - [ ] Verificar comandos docker — usar `docker compose` não `docker-compose`
 - [ ] Verificar caminhos
 
-### 4. `docs/operacional/ORIENTACOES_PIPELINE.md` ⏳ PENDENTE
+### 4. `docs/operacional/ORIENTACOES_PIPELINE.md` ✅ CONCLUÍDO 04/06/2026
 - [ ] Verificar caminhos
 - [ ] Adicionar orientação sobre orchestrator — todo novo pipeline deve ser registrado
 - [ ] Verificar consistência com o que implementamos
 
-### 5. `docs/operacional/BRACC_INSTALLER_ESCOPO.md` ⏳ PENDENTE
+### 5. `docs/operacional/BRACC_INSTALLER_ESCOPO.md` ✅ CONCLUÍDO 04/06/2026
 - [ ] Verificar referências a docs antigos
 - [ ] Verificar prioridades
 
-### 6. `docs/referencia/CATALOGO_FONTES.md` ⏳ PENDENTE
+### 6. `docs/referencia/CATALOGO_FONTES.md` ✅ CONCLUÍDO 05/06/2026
 - [ ] Verificar status das fontes — tse_bens importado, etc
 - [ ] Verificar referências a arquivos antigos
 
-### 7. `~/bracc/CHANGELOG.md` (raiz) ⏳ PENDENTE
+### 7. `~/bracc/CHANGELOG.md` (raiz) ✅ CONCLUÍDO 05/06/2026
 - [ ] Verificar se é duplicata do docs/operacional/CHANGELOG.md
 - [ ] Definir qual é o principal
 
