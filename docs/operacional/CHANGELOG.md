@@ -652,3 +652,12 @@ Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os co
 - docs/operacional/ESTADO_ATUAL.md criado — estado dinâmico do banco
 - Auditoria orchestrator.sh — 6 problemas identificados e registrados no ESTADO_ATUAL.md
 - TAREFA_PENTE_FINO_DOCS.md deletado — todas as tarefas concluídas
+
+### [06/06/2026] — date_formatting.py — fix ✅
+**Problema:** parse_date não tratava formato ISO 8601 com timezone (ex: 2013-11-01T04:00:00.000+00:00)
+**Solução:** Adicionado fallback com pd.to_datetime(value, utc=True)
+**Impacto:** TCE-AM data_assinatura e data_publicacao estavam vazios — reimportação em andamento
+
+### [06/06/2026] — orchestrator.sh — fix P1 ✅
+**Problema:** docker exec bracc-neo4j em vez de docker compose exec neo4j
+**Solução:** sed substituiu as 3 ocorrências

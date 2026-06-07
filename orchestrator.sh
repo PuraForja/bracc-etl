@@ -271,7 +271,7 @@ mark_imported() {
 
 neo4j_count() {
     local label="$1"
-    docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+    docker compose exec neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
         "MATCH (n:$label) RETURN count(n) as total" 2>/dev/null \
         | grep -E '^[0-9]+$' | head -1
 }
@@ -431,7 +431,7 @@ cmd_check() {
 cmd_validate() {
     log_banner "🔍  VALIDAÇÃO — Neo4j"
     local raw
-    raw=$(docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+    raw=$(docker compose exec neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
         "MATCH (n) RETURN labels(n)[0] as label, count(n) as total ORDER BY total DESC" \
         2>/dev/null | grep -v "^label\|^$\|rows\|ms")
     [[ -z "$raw" ]] && { log_err "Não foi possível conectar ao Neo4j"; return; }
@@ -478,7 +478,7 @@ cmd_install() {
     done
 
     log_info "Criando índices Neo4j..."
-    docker exec bracc-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "
+    docker compose exec neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "
 CREATE INDEX expense_id IF NOT EXISTS FOR (n:Expense) ON (n.expense_id);
 CREATE INDEX person_cpf IF NOT EXISTS FOR (n:Person) ON (n.cpf);
 CREATE INDEX person_person_id IF NOT EXISTS FOR (n:Person) ON (n.person_id);
