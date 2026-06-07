@@ -646,3 +646,9 @@ Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os co
 - CATALOGO_FONTES.md: tce_am marcado como implementado, tse_bens contagem corrigida
 - TAREFA_PENTE_FINO_DOCS.md: itens 4, 5, 6, 7 marcados como concluídos
 - ORIENTACOES_PIPELINE.md: reescrito com regras completas incluindo orchestrator
+
+### [06/06/2026] — CLAUDE.md + ESTADO_ATUAL.md — feat ✅
+- CLAUDE.md criado na raiz — ponto de entrada para qualquer IA
+- docs/operacional/ESTADO_ATUAL.md criado — estado dinâmico do banco
+- Auditoria orchestrator.sh — 6 problemas identificados e registrados no ESTADO_ATUAL.md
+- TAREFA_PENTE_FINO_DOCS.md deletado — todas as tarefas concluídas
