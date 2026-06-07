@@ -671,3 +671,16 @@ Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os co
 
 ### [06/06/2026] — Backup Neo4j ✅
 Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
+
+### [07/06/2026] — GraphCanvas — melhorias visuais do grafo
+- d3ReheatSimulation em nodeClick e backgroundClick — grafo reaquece ao interagir
+- charge strength: -200 para -10000 — nos se repelem mais
+- link distance: 100 para 200 — mais espaco entre nos
+- cooldownTicks=300, d3VelocityDecay=0.08 — movimento mais suave
+- Label visivel a partir de zoom>0.5 (antes so zoom>1.5)
+- Hover glow maior e mais brilhante
+
+### [07/06/2026] — servidores_federais — pendente revisao
+- Scripts criados por outra IA mas NAO commitados
+- Problemas: usa requests direto (deve usar httpx+_download_utils), pipeline nao herda Pipeline base, label FederalEmployee deve ser GovEmployee, path hardcoded
+- Proxima sessao: reescrever seguindo padrao do projeto antes de commitar
