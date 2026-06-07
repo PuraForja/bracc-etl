@@ -215,7 +215,6 @@ graceful_shutdown() {
         echo "  │  Para forçar:  bash orchestrator.sh update --force $CURRENT_FONTE" | tee -a "$LOG"
     fi
     echo "  ⛔  ENCERRADO — $(date '+%d/%m/%Y %H:%M')" | tee -a "$LOG"
-    echo "  💡  PNCP continua em background se foi iniciado" | tee -a "$LOG"
     echo "" | tee -a "$LOG"
     exit 0
 }
@@ -500,7 +499,7 @@ _run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am" "pncp")
+    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am")
     local is_incremental=0
     for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
     if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
@@ -651,18 +650,6 @@ _run_queue() {
     ERRORS=$((ERRORS + errors))
 }
 
-_start_pncp_background() {
-    [[ "$MODO_TESTE" == "Y" ]] && { log_info "MODO_TESTE: pulando PNCP"; return 0; }
-    log_banner "📥  PNCP — background (download leva dias)"
-    (
-        while true; do
-            cd "$ETL_DIR"
-            uv run python scripts/download_pncp.py --output-dir "../data/pncp"
-            echo "[PNCP] reiniciando em 30s..."; sleep 30
-        done >> "$LOG" 2>&1
-    ) &
-    log_ok "PNCP em background (PID $!) — download pode levar vários dias"
-}
 
 _sync_neo4j() {
     log_banner "🗄️   SINCRONIZANDO COM NEO4J"
@@ -723,7 +710,6 @@ cmd_update() {
     log_banner "🚀  BRACC-ETL UPDATE — $(date '+%d/%m/%Y %H:%M')"
     _start_docker
     [[ "$MODO_TESTE" == "Y" ]] || _sync_neo4j
-    _start_pncp_background
 
     if [[ ${#CUSTOM_QUEUE[@]} -gt 0 ]]; then
         _run_queue "Customizada" "${CUSTOM_QUEUE[@]}"
