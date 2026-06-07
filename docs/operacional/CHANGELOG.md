@@ -684,3 +684,18 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - Scripts criados por outra IA mas NAO commitados
 - Problemas: usa requests direto (deve usar httpx+_download_utils), pipeline nao herda Pipeline base, label FederalEmployee deve ser GovEmployee, path hardcoded
 - Proxima sessao: reescrever seguindo padrao do projeto antes de commitar
+
+### [07/06/2026] — servidores_federais — lista de correções obrigatórias
+**download_servidores_federais.py:**
+- Substituir requests por httpx com retry (padrao _download_utils)
+- Remover hardcoded ano_mes=202604 — aceitar parametro --ano-mes
+- Seguir estrutura de download_tce_am.py como referencia
+
+**pipelines/servidores_federais.py:**
+- Herdar de Pipeline (base.py) — nao implementar run() direto
+- Usar Neo4jBatchLoader com loader.open_session()
+- Substituir label FederalEmployee por GovEmployee (padrao do banco)
+- Remover path hardcoded — usar self.data_dir dinamico
+- Adicionar chunksize=50_000 (CSV pode ser grande)
+- Registrar no orchestrator: LABEL_MAP, TIMEOUT_MAP, DEFAULT_QUEUE ou AMAZONAS_QUEUE
+- Ver download_tce_am.py e pipelines/tce_am.py como referencia de padrao
