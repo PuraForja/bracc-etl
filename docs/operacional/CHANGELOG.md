@@ -661,3 +661,13 @@ Substituido docker exec bracc-neo4j por docker compose exec neo4j em todos os co
 ### [06/06/2026] — orchestrator.sh — fix P1 ✅
 **Problema:** docker exec bracc-neo4j em vez de docker compose exec neo4j
 **Solução:** sed substituiu as 3 ocorrências
+
+### [06/06/2026] — GraphCanvas.tsx — fix parcial bug zoom ⚠️
+**Problema:** grafo travava imediatamente após carregar
+**Causa 1:** pauseAnimation() chamado no handleEngineStop — removido
+**Causa 2:** cooldownTime={4000} pausava simulação após 4s — alterado para 15000
+**Causa 3 (pendente):** botões de zoom roubam foco do canvas — próximo passo: ZoomControls.tsx onMouseDown preventDefault
+**Testado:** parcial — grafo agora funciona por mais tempo mas ainda trava no zoom
+
+### [06/06/2026] — Backup Neo4j ✅
+Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz

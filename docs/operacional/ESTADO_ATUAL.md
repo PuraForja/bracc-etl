@@ -74,3 +74,19 @@ Problemas identificados — **não corrigidos ainda**:
 ---
 *Criado em 06/06/2026*
 *Próxima atualização: após backup + TCE-AM download completo*
+
+---
+## ATUALIZAÇÃO 06/06/2026
+
+### Corrigido nesta sessão
+- ✅ parse_date — ISO 8601 com timezone agora suportado
+- ✅ TCE-AM reimportado — data_assinatura e data_publicacao populados
+- ✅ orchestrator P1 — docker compose exec neo4j corrigido
+- ✅ pncp removido de INCREMENTAL_SOURCES
+- ✅ GraphCanvas.tsx — pauseAnimation removido do handleEngineStop
+- ✅ Backup Neo4j — /home/rolim/neo4j-backup-20260606.tar.gz
+
+### Bug grafo — em andamento
+**Sintoma:** botões zoom travam o canvas após clique
+**Causa:** botões roubam foco do canvas
+**Próximo passo:** ZoomControls.tsx — adicionar onMouseDown={e => e.preventDefault()} nos botões

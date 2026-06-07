@@ -323,10 +323,8 @@ function GraphCanvasInner({
       setTimeout(() => {
         fgRef.current?.zoomToFit(300, 50);
         // Defer pause until after zoomToFit animation completes
-        setTimeout(() => fgRef.current?.pauseAnimation(), 350);
+        
       }, 200);
-    } else {
-      fgRef.current?.pauseAnimation();
     }
   }, []);
 
@@ -441,7 +439,7 @@ function GraphCanvasInner({
           onZoom={handleZoom}
           backgroundColor="rgba(0,0,0,0)"
           linkDirectionalParticles={0}
-          cooldownTime={4000}
+          cooldownTime={15000}
           d3AlphaDecay={0.03}
           d3VelocityDecay={0.5}
           warmupTicks={30}
@@ -497,3 +495,4 @@ function GraphCanvasInner({
 }
 
 export const GraphCanvas = memo(GraphCanvasInner);
+
