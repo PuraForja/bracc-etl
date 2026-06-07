@@ -56,6 +56,7 @@ LABEL_MAP[senado_cpis]="CPI"
 LABEL_MAP[siconfi]="MunicipalFinance"
 LABEL_MAP[siop]="Amendment"
 LABEL_MAP[tce_am]="Contract"
+LABEL_MAP[servidores_federais]="GovEmployee"
 LABEL_MAP[pncp]="Bid"
 LABEL_MAP[tcu]="Sanction"
 LABEL_MAP[tesouro_emendas]="Amendment"
@@ -77,6 +78,7 @@ TIMEOUT_MAP[tse_bens]=1800
 TIMEOUT_MAP[tse_filiados]=1800
 TIMEOUT_MAP[transparencia_am]=1800
 TIMEOUT_MAP[tce_am]=900
+TIMEOUT_MAP[servidores_federais]=600
 TIMEOUT_MAP[transparencia]=600
 TIMEOUT_MAP[siconfi]=900
 TIMEOUT_MAP[datasus]=600
@@ -111,6 +113,7 @@ URL_MAP[eu_sanctions]="https://webgate.ec.europa.eu/fsd/fsf/public/files/csvFull
 URL_MAP[world_bank]="https://apigwext.worldbank.org/dvsvc/v1.0/json/APPLICATION/ADOBE_PDF/FIRM/INDVIDUAL"
 URL_MAP[cvm]="https://www.gov.br/cvm/pt-br/assuntos/noticias/2024"
 URL_MAP[bcb]="https://www.bcb.gov.br/acessoinformacao/legado?url=https://www.bcb.gov.br/fis/info/penalidades.asp"
+URL_MAP[servidores_federais]="https://portaldatransparencia.gov.br/download-de-dados/servidores"
 URL_MAP[tce_am]="https://econtasapi.tce.am.gov.br/transparencia/dados-abertos/unidades"
 URL_MAP[ibama]="https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php"
 URL_MAP[leniency]="https://www.portaltransparencia.gov.br/download-de-dados/acordos-leniencia"
@@ -177,6 +180,7 @@ DEFAULT_QUEUE=(
 
 AMAZONAS_QUEUE=(
     transparencia_am
+    servidores_federais
     tce_am
     # ibama_am     # a implementar — embargos ambientais AM
     # inpe_prodes  # a implementar — desmatamento
