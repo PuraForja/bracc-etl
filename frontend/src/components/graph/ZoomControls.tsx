@@ -24,6 +24,7 @@ function ZoomControlsInner({
       <button
         className={styles.button}
         onClick={onZoomIn}
+        onMouseDown={e => e.preventDefault()}
         title={t("graph.zoomIn")}
       >
         <Plus size={16} />
@@ -31,6 +32,7 @@ function ZoomControlsInner({
       <button
         className={styles.button}
         onClick={onZoomOut}
+        onMouseDown={e => e.preventDefault()}
         title={t("graph.zoomOut")}
       >
         <Minus size={16} />
@@ -38,6 +40,7 @@ function ZoomControlsInner({
       <button
         className={styles.button}
         onClick={onFitView}
+        onMouseDown={e => e.preventDefault()}
         title={t("graph.fitView")}
       >
         <Maximize2 size={16} />
@@ -45,6 +48,7 @@ function ZoomControlsInner({
       <button
         className={styles.button}
         onClick={onResetZoom}
+        onMouseDown={e => e.preventDefault()}
         title={t("graph.resetZoom")}
       >
         <RotateCcw size={16} />

@@ -174,9 +174,9 @@ function GraphCanvasInner({
     const fg = fgRef.current;
     if (!fg) return;
     const charge = fg.d3Force("charge") as { strength?: (s: number) => void } | undefined;
-    charge?.strength?.(-200);
+    charge?.strength?.(-10000);
     const link = fg.d3Force("link") as { distance?: (d: number | ((l: unknown) => number)) => void } | undefined;
-    link?.distance?.(100);
+    link?.distance?.(200);
     fg.d3ReheatSimulation();
   }, [data]);
 
@@ -259,6 +259,7 @@ function GraphCanvasInner({
     (node: GraphNodeObject) => {
       onNodeClick(node.id);
       setContextMenu(null);
+      fgRef.current?.d3ReheatSimulation();
     },
     [onNodeClick],
   );
@@ -300,6 +301,7 @@ function GraphCanvasInner({
     onNodeDeselect();
     setContextMenu(null);
     setSelectedEdge(null);
+    fgRef.current?.d3ReheatSimulation();
   }, [onNodeDeselect]);
 
   const handleLinkClick = useCallback((link: GraphLinkObject) => {
@@ -440,11 +442,12 @@ function GraphCanvasInner({
           backgroundColor="rgba(0,0,0,0)"
           linkDirectionalParticles={0}
           cooldownTime={15000}
+          cooldownTicks={300}
           d3AlphaDecay={0.03}
-          d3VelocityDecay={0.5}
-          warmupTicks={30}
+          d3VelocityDecay={0.08}
+          warmupTicks={0}
           onEngineStop={handleEngineStop}
-          dagMode={layoutMode === "hierarchy" ? "td" : undefined}
+          dagMode={undefined}
           nodeCanvasObjectMode={nodeCanvasObjectMode}
           nodeCanvasObject={nodeCanvasObject}
         />

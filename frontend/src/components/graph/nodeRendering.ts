@@ -4,7 +4,6 @@ import {
   NODE_SIZE_MAX,
   NODE_SIZE_CENTER,
   LOD_DOTS_ONLY,
-  LOD_ICONS,
   getIconImage,
 } from "./graphConstants";
 
@@ -59,9 +58,9 @@ export function renderNode(
 
   // Outer glow for selected/hovered
   if (!isDimmed && (isSelected || isHovered)) {
-    const glowRadius = radius + (isSelected ? 6 : 4);
+    const glowRadius = radius + (isSelected ? 8 : 10);
     const gradient = ctx.createRadialGradient(x, y, radius, x, y, glowRadius);
-    gradient.addColorStop(0, isSelected ? "rgba(0, 229, 195, 0.4)" : "rgba(0, 229, 195, 0.2)");
+    gradient.addColorStop(0, isSelected ? "rgba(0, 229, 195, 0.6)" : "rgba(0, 229, 195, 0.5)");
     gradient.addColorStop(1, "rgba(0, 229, 195, 0)");
     ctx.beginPath();
     ctx.arc(x, y, glowRadius, 0, 2 * Math.PI);
@@ -124,8 +123,8 @@ export function renderNode(
     }
   }
 
-  // === LOD: Full detail (zoom > 1.5) ===
-  if (zoom > LOD_ICONS) {
+  // === LOD: Full detail (zoom > 0.5) ===
+  if (zoom > LOD_DOTS_ONLY) {
     // Label with text shadow for readability
     const fontSize = isCenter ? 7 : 5.5;
     ctx.font = `500 ${fontSize}px "IBM Plex Sans", sans-serif`;
