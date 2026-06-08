@@ -181,7 +181,7 @@ DEFAULT_QUEUE=(
 AMAZONAS_QUEUE=(
     transparencia_am
     tce_am
-    servidores_federais
+    servidores_federais  # filtrado por UF=AM — só servidores lotados no Amazonas
     # ibama_am     # a implementar — embargos ambientais AM
     # inpe_prodes  # a implementar — desmatamento
     # sicar        # a implementar — Cadastro Ambiental Rural
@@ -309,7 +309,8 @@ cmd_help() {
     echo "    bash orchestrator.sh update"
     echo "    bash orchestrator.sh update tse cnpj"
     echo "    bash orchestrator.sh update --am"
-    echo "    bash orchestrator.sh update --force tse"
+    echo "    bash orchestrator.sh update --force tse
+    bash orchestrator.sh update servidores_federais"
     echo "    bash orchestrator.sh check --save"
     echo "    bash orchestrator.sh list"
     echo "    bash orchestrator.sh validate"
@@ -503,7 +504,7 @@ _run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am")
+    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am" "servidores_federais")
     local is_incremental=0
     for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
     if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
@@ -516,7 +517,19 @@ _run_download() {
     cd "$ETL_DIR"
     local PROGRESS_FILE="$ROOT/bracc_download_${fonte}.tmp"
     rm -f "$PROGRESS_FILE"
-    uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
+    if [[ "$fonte" == "servidores_federais" ]]; then
+        local sf_count
+        sf_count=$(find "$DATA_DIR/servidores_federais" -name "*.csv" 2>/dev/null | wc -l)
+        if [[ "$sf_count" -eq 0 ]]; then
+            log_info "servidores_federais: primeira execucao — baixando historico desde 2014..."
+            uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" --historico >> "$PROGRESS_FILE" 2>&1 &
+        else
+            log_info "servidores_federais: atualizacao trimestral..."
+            uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
+        fi
+    else
+        uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
+    fi
     CURRENT_PID=$!
     local last_shown="" last_log_size=0 last_change warned=0
     last_change=$(date +%s)

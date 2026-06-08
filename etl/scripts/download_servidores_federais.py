@@ -124,9 +124,25 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./data/servidores_federais")
     parser.add_argument("--ano-mes", default=None, help="Ex: 202604")
+    parser.add_argument("--historico", action="store_true", help="Baixa de 3 em 3 meses desde 2014 ate hoje")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
+    if args.historico:
+        logger.info("Modo historico: baixando de 3 em 3 meses desde 2014...")
+        from datetime import date as _date
+        d = _date(2014, 1, 1)
+        hoje = _date.today().replace(day=1)
+        erros = 0
+        while d <= hoje:
+            ano_mes_h = d.strftime("%Y%m")
+            download_e_filtra(ano_mes_h, output_dir)
+            mes = d.month + 3
+            ano = d.year + (mes - 1) // 12
+            mes = ((mes - 1) % 12) + 1
+            d = d.replace(year=ano, month=mes)
+        logger.info("Historico concluido")
+        sys.exit(0)
     ano_mes = args.ano_mes
 
     if not ano_mes:
