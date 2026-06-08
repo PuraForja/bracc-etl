@@ -714,3 +714,30 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - Adicionar chunksize=50_000 (CSV pode ser grande)
 - Registrar no orchestrator: LABEL_MAP, TIMEOUT_MAP, DEFAULT_QUEUE ou AMAZONAS_QUEUE
 - Ver download_tce_am.py e pipelines/tce_am.py como referencia de padrao
+
+### [08/06/2026] — servidores_federais — historico trimestral + AMAZONAS_QUEUE
+- download_servidores_federais.py: adicionado flag --historico
+  - Baixa trimestral (marco, junho, setembro, dezembro) desde 2013
+  - Pula arquivos ja existentes (incremental)
+  - Uso: uv run python scripts/download_servidores_federais.py --output-dir ../data/servidores_federais --historico
+- orchestrator.sh: movido de DEFAULT_QUEUE para AMAZONAS_QUEUE
+
+### PENDENTE — servidores_federais
+- Orchestrator passa so mes mais recente no download
+- Na primeira execucao (pasta vazia) deve passar --historico automaticamente
+
+
+
+### [08/06/2026] — servidores_federais — feat ✅
+**O que foi feito:**
+- download_servidores_federais.py: flag --historico implementado — baixa trimestral desde 2014
+- pipelines/servidores_federais.py: encoding latin-1 + cargo "Sem informação" corrigido
+- runner.py: ServidoresFederaisPipeline registrado
+- orchestrator.sh: AMAZONAS_QUEUE + INCREMENTAL_SOURCES + bloco trimestral
+- SETUP_INDICES.md: índice gov_employee_fonte adicionado
+- 8.273 GovEmployee AM importados (fonte: servidores_federais)
+
+**Pendente:**
+- [ ] Pipeline importa só CSV mais recente — 10 meses históricos ignorados
+- [ ] Índice emp_id em GovEmployee — queries lentas (~14s)
+- [ ] SAME_AS com Person via CPF/nome
