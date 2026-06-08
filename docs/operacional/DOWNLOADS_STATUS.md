@@ -6,7 +6,7 @@
 
 ## CORREÇÃO CENTRAL PENDENTE — `_download_utils.py`
 
-**Status:** PENDENTE — nunca implementado
+**Status:** ✅ RESOLVIDO em 07/06/2026 — parâmetro `referer` adicionado
 
 Adicionar parâmetro `referer` opcional no `download_file`. Sem isso, downloads da CGU retornam 403.
 

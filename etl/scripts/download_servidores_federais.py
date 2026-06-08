@@ -75,7 +75,7 @@ def download_e_filtra(ano_mes: str, output_dir: Path) -> bool:
 
     logger.info("Baixando %s...", url)
     try:
-        download_file(url, zip_dest, headers=HEADERS)
+        download_file(url, zip_dest, referer=REFERER)
     except Exception as e:
         logger.error("Falha no download: %s", e)
         return False

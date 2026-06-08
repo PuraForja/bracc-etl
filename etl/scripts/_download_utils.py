@@ -11,7 +11,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
+def download_file(url: str, dest: Path, *, timeout: int = 600, referer: str | None = None) -> bool:
     """Download a file with streaming and resume support.
 
     Returns True on success, False on failure.
@@ -20,6 +20,8 @@ def download_file(url: str, dest: Path, *, timeout: int = 600) -> bool:
     start_byte = partial.stat().st_size if partial.exists() else 0
 
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    if referer:
+        headers["Referer"] = referer
     if start_byte > 0:
         headers["Range"] = f"bytes={start_byte}-"
         logger.info("Resuming %s from %.1f MB", dest.name, start_byte / 1e6)
