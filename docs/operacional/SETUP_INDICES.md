@@ -63,3 +63,6 @@ CREATE INDEX community_id_globalpep IF NOT EXISTS FOR (n:GlobalPEP) ON (n.commun
 - 01/06/2026: community_id — WCC GDS resolve Person↔Partner em depth=1
 - 02/06/2026: titulo_eleitor_person — SAME_AS TSE via titulo de eleitor
 - 03/06/2026: declared_asset_id — tse_bens MERGE DeclaredAsset
+
+-- GovEmployee fonte (adicionado 06/06/2026)
+CREATE INDEX gov_employee_fonte IF NOT EXISTS FOR (n:GovEmployee) ON (n.fonte);

@@ -94,7 +94,7 @@ def download_e_filtra(ano_mes: str, output_dir: Path) -> bool:
             chunks = []
             with z.open(cadastro) as f:
                 for chunk in pd.read_csv(
-                    f, sep=";", encoding="iso-8859-1",
+                    f, sep=";", encoding="latin-1",
                     chunksize=50_000, dtype=str,
                 ):
                     chunk.columns = chunk.columns.str.strip().str.upper()

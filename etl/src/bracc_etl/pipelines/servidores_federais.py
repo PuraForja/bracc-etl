@@ -84,7 +84,7 @@ class ServidoresFederaisPipeline(Pipeline):
                     "name": nome,
                     "cpf_mascarado": cpf,
                     "orgao": orgao,
-                    "cargo": cargo,
+                    "cargo": cargo.replace("Sem informaç", "Sem informação"),
                     "uf": uf,
                     "fonte": "servidores_federais",
                 })

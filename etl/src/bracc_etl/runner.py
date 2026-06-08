@@ -9,6 +9,7 @@ from bracc_etl.pipelines.caged import CagedPipeline
 from bracc_etl.pipelines.camara import CamaraPipeline
 from bracc_etl.pipelines.camara_inquiries import CamaraInquiriesPipeline
 from bracc_etl.pipelines.ceaf import CeafPipeline
+from bracc_etl.pipelines.tce_am import TceAmPipeline
 from bracc_etl.pipelines.cepim import CepimPipeline
 from bracc_etl.pipelines.cnpj import CNPJPipeline
 from bracc_etl.pipelines.comprasnet import ComprasnetPipeline
@@ -45,6 +46,7 @@ from bracc_etl.pipelines.tesouro_emendas import TesouroEmendasPipeline
 from bracc_etl.pipelines.transferegov import TransferegovPipeline
 from bracc_etl.pipelines.transparencia import TransparenciaPipeline
 from bracc_etl.pipelines.transparencia_am import TransparenciaAmPipeline
+from bracc_etl.pipelines.servidores_federais import ServidoresFederaisPipeline
 from bracc_etl.pipelines.tse import TSEPipeline
 from bracc_etl.pipelines.tse_bens import TseBensPipeline
 from bracc_etl.pipelines.tse_filiados import TseFiliadosPipeline
@@ -56,6 +58,7 @@ PIPELINES: dict[str, type] = {
     "tse": TSEPipeline,
     "transparencia": TransparenciaPipeline,
     "transparencia_am": TransparenciaAmPipeline,
+    "servidores_federais": ServidoresFederaisPipeline,
     "sanctions": SanctionsPipeline,
     "pep_cgu": PepCguPipeline,
     "bndes": BndesPipeline,
@@ -76,6 +79,7 @@ PIPELINES: dict[str, type] = {
     "camara_inquiries": CamaraInquiriesPipeline,
     "senado": SenadoPipeline,
     "ceaf": CeafPipeline,
+    "tce_am": TceAmPipeline,
     "cepim": CepimPipeline,
     "cpgf": CpgfPipeline,
     "leniency": LeniencyPipeline,
