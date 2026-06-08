@@ -180,8 +180,8 @@ DEFAULT_QUEUE=(
 
 AMAZONAS_QUEUE=(
     transparencia_am
-    servidores_federais
     tce_am
+    servidores_federais
     # ibama_am     # a implementar — embargos ambientais AM
     # inpe_prodes  # a implementar — desmatamento
     # sicar        # a implementar — Cadastro Ambiental Rural
