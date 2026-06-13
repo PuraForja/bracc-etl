@@ -44,6 +44,7 @@ from bracc_etl.pipelines.stj_dados_abertos import StjPipeline
 from bracc_etl.pipelines.tcu import TcuPipeline
 from bracc_etl.pipelines.tesouro_emendas import TesouroEmendasPipeline
 from bracc_etl.pipelines.transferegov import TransferegovPipeline
+from bracc_etl.pipelines.obras import ObrasPipeline
 from bracc_etl.pipelines.transparencia import TransparenciaPipeline
 from bracc_etl.pipelines.transparencia_am import TransparenciaAmPipeline
 from bracc_etl.pipelines.servidores_federais import ServidoresFederaisPipeline
@@ -67,6 +68,7 @@ PIPELINES: dict[str, type] = {
     "comprasnet": ComprasnetPipeline,
     "tcu": TcuPipeline,
     "transferegov": TransferegovPipeline,
+    "obras": ObrasPipeline,
     "rais": RaisPipeline,
     "inep": InepPipeline,
     "dou": DouPipeline,

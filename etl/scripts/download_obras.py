@@ -25,7 +25,7 @@ import httpx
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-API_BASE = "https://api.obras.gov.br/api/v2/empreendimentos"
+API_BASE = "https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento"
 PAGE_SIZE = 100
 MAX_RETRIES = 3
 RETRY_BACKOFF_SECONDS = 5.0

@@ -66,3 +66,6 @@ CREATE INDEX community_id_globalpep IF NOT EXISTS FOR (n:GlobalPEP) ON (n.commun
 
 -- GovEmployee fonte (adicionado 06/06/2026)
 CREATE INDEX gov_employee_fonte IF NOT EXISTS FOR (n:GovEmployee) ON (n.fonte);
+
+-- Obra obra_id (adicionado 12/06/2026)
+CREATE INDEX obra_id IF NOT EXISTS FOR (n:Obra) ON (n.obra_id);
