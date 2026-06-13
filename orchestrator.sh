@@ -508,7 +508,7 @@ _run_download() {
     local fonte="$1"
     local script="$ETL_DIR/scripts/download_${fonte}.py"
     [[ ! -f "$script" ]] && { log_skip "sem script de download — indo para importação"; return 0; }
-    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am" "servidores_federais")
+    local INCREMENTAL_SOURCES=("transparencia_am" "tce_am" "servidores_federais" "comprasnet" "obras" "transferegov")
     local is_incremental=0
     for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
     if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
