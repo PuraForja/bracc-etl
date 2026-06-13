@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 API_BASE = "https://pncp.gov.br/api/consulta/v1/contratos"
 
 MAX_PAGE_SIZE = 50
-MAX_DATE_RANGE_DAYS = 10
+MAX_DATE_RANGE_DAYS = 2
 REQUEST_DELAY_SECONDS = 1.0
 MAX_RETRIES = 3
 RETRY_BACKOFF_SECONDS = 5.0
@@ -119,7 +119,7 @@ def _fetch_window(
 def _date_windows(start: datetime, end: datetime) -> list[tuple[str, str]]:
     windows: list[tuple[str, str]] = []
     current = start
-    while current < end:
+    while current <= end:
         window_end = min(current + timedelta(days=MAX_DATE_RANGE_DAYS - 1), end)
         windows.append((current.strftime("%Y%m%d"), window_end.strftime("%Y%m%d")))
         current = window_end + timedelta(days=1)
