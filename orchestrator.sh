@@ -531,6 +531,8 @@ _run_download() {
             log_info "servidores_federais: atualizacao trimestral..."
             uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
         fi
+    elif [[ "$fonte" == "obras" ]]; then
+        uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" --uf AM >> "$PROGRESS_FILE" 2>&1 &
     else
         uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" >> "$PROGRESS_FILE" 2>&1 &
     fi
