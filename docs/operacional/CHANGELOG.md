@@ -754,3 +754,9 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - [ ] ObrasPipeline registrado no runner.py
 - [ ] Índices para Obra nodes no SETUP_INDICES.md
 - [ ] Testar download_obras.py contra API real
+
+### PENDENTE — comprasnet filtro UF
+- download_comprasnet.py baixa contratos federais de todo o Brasil
+- API PNCP /contratos não suporta filtro por UF no download
+- Solução: filtrar por UF=AM no pipeline de importação (comprasnet.py)
+- Ver campo unidadeOrgao.ufSigla ou municipio nos registros
