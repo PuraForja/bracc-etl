@@ -35,6 +35,7 @@ LABEL_MAP[ceaf]="Expulsion"
 LABEL_MAP[cepim]="BarredNGO"
 LABEL_MAP[cnpj]="Company"
 LABEL_MAP[comprasnet]="Contract"
+LABEL_MAP[obras]="Obra"
 LABEL_MAP[cpgf]="GovCardExpense"
 LABEL_MAP[cvm]="CVMProceeding"
 LABEL_MAP[cvm_funds]="Fund"
@@ -84,6 +85,7 @@ TIMEOUT_MAP[siconfi]=900
 TIMEOUT_MAP[datasus]=600
 TIMEOUT_MAP[camara_inquiries]=600
 TIMEOUT_MAP[transferegov]=600
+TIMEOUT_MAP[obras]=600
 TIMEOUT_MAP[senado]=600
 TIMEOUT_MAP[tcu]=600
 TIMEOUT_MAP[ibama]=600
@@ -176,6 +178,8 @@ DEFAULT_QUEUE=(
     viagens
     cnpj
     pncp
+    comprasnet
+    obras
 )
 
 AMAZONAS_QUEUE=(
@@ -520,7 +524,7 @@ _run_download() {
     if [[ "$fonte" == "servidores_federais" ]]; then
         local sf_count
         sf_count=$(find "$DATA_DIR/servidores_federais" -name "*.csv" 2>/dev/null | wc -l)
-        if [[ "$sf_count" -eq 0 ]]; then
+        if [[ "$sf_count" -lt 20 ]]; then
             log_info "servidores_federais: primeira execucao — baixando historico desde 2014..."
             uv run python "scripts/download_${fonte}.py" --output-dir "../data/${fonte}" --historico >> "$PROGRESS_FILE" 2>&1 &
         else

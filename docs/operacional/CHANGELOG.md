@@ -741,3 +741,16 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - [ ] Pipeline importa só CSV mais recente — 10 meses históricos ignorados
 - [ ] Índice emp_id em GovEmployee — queries lentas (~14s)
 - [ ] SAME_AS com Person via CPF/nome
+
+### [12/06/2026] — obras + comprasnet + transferegov — novos scripts ✅
+**O que foi feito:**
+- download_transferegov.py: criado (estava vazio)
+- download_comprasnet.py: criado — endpoint PNCP contratos executados
+- download_obras.py: criado — API Obras.gov paginada com checkpoint
+- pipelines/obras.py: criado — ObrasPipeline com nós Obra, EXECUTA, CONTRATOU
+- orchestrator.sh: obras registrado em LABEL_MAP, TIMEOUT_MAP e DEFAULT_QUEUE
+- orchestrator.sh: comprasnet adicionado à DEFAULT_QUEUE
+**Pendente:**
+- [ ] ObrasPipeline registrado no runner.py
+- [ ] Índices para Obra nodes no SETUP_INDICES.md
+- [ ] Testar download_obras.py contra API real
