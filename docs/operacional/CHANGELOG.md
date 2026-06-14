@@ -767,3 +767,17 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - CLAUDE.md atualizado — distingue IA online vs aider, versão MASTER dinâmica
 - Regra adicionada: todo download_*.py registrado no orchestrator antes de ser considerado concluído
 - Regra adicionada: downloads sempre pelo orchestrator, nunca direto pelo script
+
+### [13/06/2026] — download_transferegov.py — diff rejeitado
+- Outra IA propôs remover /2024 da PORTAL_URL e adicionar skip_existing no download_file
+- REJEITADO: URL sem /2024 retorna 405 (testado em 12/06)
+- REJEITADO: download_file não tem parâmetro skip_existing — quebraria com TypeError
+- Arquivo mantido como está — funcionando corretamente
+
+### [14/06/2026] — transferegov — importação concluída ✅
+- 177.606 Amendment nodes
+- 70.357 Convenio nodes
+- 103.811 AUTOR_EMENDA relationships
+- 354.451 BENEFICIOU relationships
+- 73.914 GEROU_CONVENIO relationships
+- Índices: amendment_id_unique, convenio_id_unique, amendment_function, amendment_value_committed
