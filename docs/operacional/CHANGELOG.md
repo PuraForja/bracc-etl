@@ -760,3 +760,10 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - API PNCP /contratos não suporta filtro por UF no download
 - Solução: filtrar por UF=AM no pipeline de importação (comprasnet.py)
 - Ver campo unidadeOrgao.ufSigla ou municipio nos registros
+
+### [12/06/2026] — Reestruturação docs de orientação ✅
+- ORIENTACOES_IA.md dividido em ORIENTACOES_IA_ONLINE.md e ORIENTACOES_IA_AIDER.md
+- ORIENTACOES_PIPELINE.md revisado — padrão de download por tipo de fonte, INCREMENTAL_SOURCES explicado
+- CLAUDE.md atualizado — distingue IA online vs aider, versão MASTER dinâmica
+- Regra adicionada: todo download_*.py registrado no orchestrator antes de ser considerado concluído
+- Regra adicionada: downloads sempre pelo orchestrator, nunca direto pelo script
