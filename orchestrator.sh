@@ -515,7 +515,7 @@ _run_download() {
     for src in "${INCREMENTAL_SOURCES[@]}"; do [[ "$src" == "$fonte" ]] && is_incremental=1; done
     if [[ $is_incremental -eq 0 ]] && [[ -d "$DATA_DIR/$fonte" ]] && [[ -n "$(ls -A "$DATA_DIR/$fonte" 2>/dev/null)" ]]; then
         local file_count
-        file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
+        file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" -o -name "*.json" 2>/dev/null | wc -l)
         log_skip "data/$fonte já existe ($file_count arquivos) — pulando download"
         return 0
     fi
@@ -568,7 +568,7 @@ _run_download() {
     cat "$PROGRESS_FILE" >> "$LOG" 2>/dev/null
     rm -f "$PROGRESS_FILE"
     local file_count=0
-    file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" 2>/dev/null | wc -l)
+    file_count=$(find "$DATA_DIR/$fonte" -name "*.csv" -o -name "*.json" 2>/dev/null | wc -l)
     if [[ $exit_code -eq 0 ]] && [[ "$file_count" -gt 0 ]]; then
         log_ok "Download concluído: $fonte ($file_count arquivo(s))"
     elif [[ $exit_code -eq 0 ]] && [[ "$file_count" -eq 0 ]]; then
