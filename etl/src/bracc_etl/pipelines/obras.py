@@ -126,7 +126,7 @@ class ObrasPipeline(Pipeline):
 
         for rec in self._raw_records:
             # Stable obra ID
-            obra_id = str(rec.get("id") or rec.get("codigoObra") or "").strip()
+            obra_id = str(rec.get("idUnico") or "").strip()
             if not obra_id:
                 skipped += 1
                 continue
@@ -134,8 +134,7 @@ class ObrasPipeline(Pipeline):
             nome = normalize_name(str(rec.get("nome") or rec.get("descricao") or ""))
             municipio = str(rec.get("municipio") or rec.get("municipioNome") or "").strip()
             uf = str(rec.get("uf") or rec.get("ufSigla") or "").strip()
-            situacao_raw = str(rec.get("situacao") or rec.get("situacaoId") or "").strip()
-            situacao = _SITUACAO_MAP.get(situacao_raw, situacao_raw)
+            situacao = str(rec.get("situacao") or "").strip()
 
             valor_contratado = _parse_float(
                 rec.get("valorContratado") or rec.get("valorContrato")

@@ -781,3 +781,9 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - 354.451 BENEFICIOU relationships
 - 73.914 GEROU_CONVENIO relationships
 - Índices: amendment_id_unique, convenio_id_unique, amendment_function, amendment_value_committed
+
+## 2026-06-14
+### `etl/src/bracc_etl/pipelines/obras.py`
+- **ID**: campo `id`/`codigoObra` → `idUnico`
+- **Situacao**: removido `_SITUACAO_MAP`, agora string direta do campo `situacao`
+- **Executor/Contratante**: substituído dict único por loop em lista `executores` (campo `codigo`/`nome`) e `repassadores` (mesmo padrão)
