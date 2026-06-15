@@ -183,7 +183,8 @@ def main(
     finally:
         client.close()
 
-    logger.info("=== Done: %d total records across %d pages ===", total_records, page - 1)
+    skipped = len(completed_pages)
+    logger.info("=== Done: %d total records across %d pages (%d from checkpoint) ===", total_records, page - 1, skipped)
 
 
 if __name__ == "__main__":
