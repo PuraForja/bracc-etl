@@ -787,3 +787,19 @@ Backup realizado em /home/rolim/neo4j-backup-20260606.tar.gz
 - **ID**: campo `id`/`codigoObra` → `idUnico`
 - **Situacao**: removido `_SITUACAO_MAP`, agora string direta do campo `situacao`
 - **Executor/Contratante**: substituído dict único por loop em lista `executores` (campo `codigo`/`nome`) e `repassadores` (mesmo padrão)
+
+## 2026-06-14 (continuação)
+### `etl/src/bracc_etl/pipelines/comprasnet.py`
+- Filtro por UF=AM adicionado e revertido — dados leves (5.4MB, 23 arquivos, 3153 contratos)
+- Decisão: manter todo Brasil no banco, filtrar por UF na query quando necessário
+- Campo disponível para filtro: `unidadeOrgao.ufSigla` no JSON bruto
+
+### `etl/src/bracc_etl/pipelines/obras.py`
+- 2580 nós Obra importados com campos corretos após fix de mapeamento
+- Log `0 total records` no download era falso positivo do checkpoint — dados OK
+
+### `etl/scripts/download_obras.py`
+- Log `Done` corrigido: agora mostra páginas do checkpoint separadamente
+
+### `orchestrator.sh`
+- PENDENTE: TIMEOUT_MAP[comprasnet] não definido — usando default 180s (suficiente dado volume leve)

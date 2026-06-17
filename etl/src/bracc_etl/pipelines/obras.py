@@ -33,15 +33,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Situação codes to labels
-_SITUACAO_MAP: dict[str, str] = {
-    "1": "nao_iniciada",
-    "2": "em_execucao",
-    "3": "paralisada",
-    "4": "concluida",
-    "5": "cancelada",
-    "6": "em_licitacao",
-}
 
 
 def _parse_float(value: Any) -> float:

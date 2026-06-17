@@ -86,6 +86,7 @@ TIMEOUT_MAP[datasus]=600
 TIMEOUT_MAP[camara_inquiries]=600
 TIMEOUT_MAP[transferegov]=600
 TIMEOUT_MAP[obras]=600
+TIMEOUT_MAP[comprasnet]=1800
 TIMEOUT_MAP[senado]=600
 TIMEOUT_MAP[tcu]=600
 TIMEOUT_MAP[ibama]=600
