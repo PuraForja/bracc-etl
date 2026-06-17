@@ -158,36 +158,32 @@ class ObrasPipeline(Pipeline):
                 "source": "obras_gov",
             })
 
-            # Executor (empresa que executa a obra)
-            executor = rec.get("executor") or rec.get("empresa") or {}
-            if isinstance(executor, dict):
-                cnpj_raw = str(executor.get("cnpj") or executor.get("cpfCnpj") or "").strip()
-                cnpj_digits = strip_document(cnpj_raw)
+            # Executores (lista)
+            for executor in rec.get("executores") or []:
+                if not isinstance(executor, dict):
+                    continue
+                codigo_raw = str(int(executor.get("codigo")) if isinstance(executor.get("codigo"), float) else executor.get("codigo") or "")
+                if len(codigo_raw) < 11:
+                    continue
+                codigo = codigo_raw.zfill(14)
+                cnpj_digits = strip_document(codigo)
                 if len(cnpj_digits) == 14:
-                    cnpj = format_cnpj(cnpj_raw)
-                    executores.append({
-                        "cnpj": cnpj,
-                        "razao_social": normalize_name(
-                            str(executor.get("razaoSocial") or executor.get("nome") or "")
-                        ),
-                    })
-                    executa_rels.append({"cnpj": cnpj, "obra_id": obra_id})
-
-            # Contratante (órgão que contratou)
-            contratante = rec.get("contratante") or rec.get("orgao") or rec.get("unidadeGestora") or {}
-            if isinstance(contratante, dict):
-                cnpj_raw = str(contratante.get("cnpj") or "").strip()
-                cnpj_digits = strip_document(cnpj_raw)
+                    cnpj = format_cnpj(codigo)
+                    executores.append({"cnpj": cnpj, "razao_social": normalize_name(str(executor.get("nome") or ""))})
+                    executa_rels.append({"source_key": cnpj, "target_key": obra_id})
+            # Repassadores (lista)
+            for repassador in rec.get("repassadores") or []:
+                if not isinstance(repassador, dict):
+                    continue
+                codigo_raw = str(int(repassador.get("codigo")) if isinstance(repassador.get("codigo"), float) else repassador.get("codigo") or "")
+                if len(codigo_raw) < 11:
+                    continue
+                codigo = codigo_raw.zfill(14)
+                cnpj_digits = strip_document(codigo)
                 if len(cnpj_digits) == 14:
-                    cnpj = format_cnpj(cnpj_raw)
-                    contratantes.append({
-                        "cnpj": cnpj,
-                        "razao_social": normalize_name(
-                            str(contratante.get("razaoSocial") or contratante.get("nome") or "")
-                        ),
-                    })
-                    contratou_rels.append({"cnpj": cnpj, "obra_id": obra_id})
-
+                    cnpj = format_cnpj(codigo)
+                    contratantes.append({"cnpj": cnpj, "razao_social": normalize_name(str(repassador.get("nome") or ""))})
+                    contratou_rels.append({"source_key": cnpj, "target_key": obra_id})
         self.obras = deduplicate_rows(obras, ["obra_id"])
         self.executores = deduplicate_rows(executores, ["cnpj"])
         self.contratantes = deduplicate_rows(contratantes, ["cnpj"])
