@@ -1,6 +1,6 @@
 # ORIENTAÇÕES PARA IA ONLINE — BRACC
 > Para: Claude.ai, ChatGPT, Gemini e similares
-> Atualizado em 12/06/2026
+> Atualizado em 24/06/2026
 > Cada regra foi alinhada com o usuário após erros reais. Não ignore nenhuma.
 
 ---
@@ -11,6 +11,28 @@
 - Quer resultados práticos, não teoria
 - Trabalha com dados públicos para inteligência política
 - Tem sessões longas com muitos comandos — precisa de acompanhamento próximo
+
+---
+
+## FERRAMENTAS DISPONÍVEIS NO AMBIENTE
+
+### RTK — Rust Token Killer (`rtk 0.42.4`)
+Filtra outputs de comandos shell antes de enviá-los ao contexto da IA.
+- **O que faz:** reduz tokens de outputs de `git`, `grep`, `docker`, etc. em 60–90%
+- **O que NÃO faz:** não intercepta chamadas de API
+- **Uso:** prefixar comandos com `rtk` — ex: `rtk git status`, `rtk grep "padrão" .`
+- Sempre que sugerir um comando shell com output longo, prefixe com `rtk`
+
+### Agent Browser (`agent-browser 0.29.1`)
+CLI de automação de navegador headless para agentes de IA.
+- **Quando usar:** sempre que precisar coletar dados de um site, extrair conteúdo de páginas, ou quando Rolim precisaria copiar dados manualmente do navegador/console para a IA
+- **Fluxo básico:**
+  ```bash
+  agent-browser open https://exemplo.com
+  agent-browser snapshot -i          # lista elementos interativos com refs
+  agent-browser get text @e1         # extrai texto do elemento
+  agent-browser close
+  ```
 
 ---
 
@@ -63,7 +85,6 @@ Antes de qualquer `git add`, `rm`, ou comando destrutivo:
 ## REGRA #5 — ANTES DE CRIAR QUALQUER DOWNLOAD
 Toda fonte nova exige investigação antes de escrever código.
 Peça para o Rolim rodar os testes e colar o output:
-
 1. **Testar a URL:**
 ```bash
 curl -sI "URL_DA_FONTE" && echo "OK"
@@ -116,13 +137,14 @@ Toda vez que alterar um arquivo `.py`:
 ---
 
 ## REGRA #9 — AO FINAL DE CADA SESSÃO
-1. Gere novo MASTER incrementando a versão — para descobrir a versão atual:
+1. Descobrir versão atual do MASTER:
 ```bash
 ls ~/bracc/docs/operacional/CONTEXTO_PROJETO_AM_v*_MASTER.md | sort -V | tail -1
 ```
-2. Atualize `docs/operacional/CHANGELOG.md`
-3. Atualize `docs/operacional/ESTADO_ATUAL.md` com totais do banco
-4. Commite:
+2. Gerar novo MASTER incrementando a versão
+3. Atualizar `docs/operacional/CHANGELOG.md`
+4. Atualizar `docs/operacional/ESTADO_ATUAL.md` com totais do banco
+5. Commitar:
 ```bash
 cd ~/bracc && git add docs/ etl/scripts/ etl/src/ orchestrator.sh api/ && git commit -m "sync $(date '+%Y-%m-%d %H:%M')" && git push origin main && echo "OK"
 ```
@@ -133,7 +155,6 @@ cd ~/bracc && git add docs/ etl/scripts/ etl/src/ orchestrator.sh api/ && git co
 Todo novo `download_*.py` criado e testado DEVE ser registrado no orchestrator
 **antes de ser considerado concluído**. Rolim não aceita rodar downloads diretamente
 pelo script — tudo passa pelo orchestrator. Sem registro = tarefa incompleta.
-
 Registrar em 4 lugares:
 1. `LABEL_MAP[fonte]="LabelNeo4j"`
 2. `TIMEOUT_MAP[fonte]=600` (padrão 180, fontes pesadas 1800)
@@ -168,18 +189,20 @@ O único CHANGELOG oficial é: `docs/operacional/CHANGELOG.md`
 | Assumiu versão do MASTER | Gerou versão errada | Sempre verificar com ls + sort -V |
 | Download incremental sem INCREMENTAL_SOURCES | Orchestrator pulava download | Registrar em INCREMENTAL_SOURCES |
 | Rodou download direto pelo script | Bypassa monitoramento | Sempre pelo orchestrator |
+| Copiou dados manualmente do navegador | Perdeu horas | Usar agent-browser |
+| Output longo foi para o contexto sem filtro | Estourou tokens | Prefixar com rtk |
 
 ---
 
 ## ESTRUTURA DO PROJETO
 ```
 ~/bracc/
-├── CLAUDE.md                      ← LEIA PRIMEIRO
+├── CLAUDE.md
 ├── docker-compose.yml
 ├── orchestrator.sh
 ├── .env                           ← NEO4J_HEAP_MAX=8G
 ├── docs/operacional/
-│   ├── CONTEXTO_PROJETO_AM_vXX_MASTER.md  ← usar ls para achar o mais recente
+│   ├── CONTEXTO_PROJETO_AM_vXX_MASTER.md
 │   ├── ESTADO_ATUAL.md
 │   ├── CHANGELOG.md
 │   ├── ORIENTACOES_IA_ONLINE.md   ← este arquivo

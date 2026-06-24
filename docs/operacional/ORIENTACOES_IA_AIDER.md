@@ -1,6 +1,6 @@
 # ORIENTAÇÕES PARA IA NO AIDER — BRACC
 > Para: sessões aider (qualquer modelo)
-> Atualizado em 12/06/2026
+> Atualizado em 24/06/2026
 > Cada regra foi alinhada com o usuário após erros reais. Não ignore nenhuma.
 
 ---
@@ -10,6 +10,28 @@
 - Não é programador profissional mas aprende rápido
 - Quer resultados práticos, não teoria
 - Trabalha com dados públicos para inteligência política
+
+---
+
+## FERRAMENTAS DISPONÍVEIS NO AMBIENTE
+
+### RTK — Rust Token Killer (`rtk 0.42.4`)
+Filtra outputs de comandos shell antes de enviá-los ao contexto da IA.
+- **O que faz:** reduz tokens de outputs de `git`, `grep`, `docker`, `pytest`, etc. em 60–90%
+- **O que NÃO faz:** não intercepta chamadas de API
+- **Uso:** prefixar comandos com `rtk` — ex: `rtk git status`, `rtk git diff`, `rtk grep "padrão" .`
+- Sempre que sugerir um comando shell com output longo, prefixe com `rtk`
+
+### Agent Browser (`agent-browser 0.29.1`)
+CLI de automação de navegador headless para agentes de IA.
+- **Quando usar:** sempre que precisar coletar dados de um site, extrair conteúdo de páginas, ou quando Rolim precisaria copiar dados manualmente do navegador/console para a IA
+- **Fluxo básico:**
+  ```bash
+  agent-browser open https://exemplo.com
+  agent-browser snapshot -i          # lista elementos interativos com refs
+  agent-browser get text @e1         # extrai texto do elemento
+  agent-browser close
+  ```
 
 ---
 
@@ -81,7 +103,6 @@ Antes de qualquer `git add`, `rm`, ou comando destrutivo:
 
 ## REGRA #5 — ANTES DE CRIAR QUALQUER DOWNLOAD
 Toda fonte nova exige investigação antes de escrever código:
-
 1. **Testar a URL:**
 ```bash
 curl -sI "URL_DA_FONTE" && echo "OK"
@@ -152,7 +173,6 @@ cd ~/bracc && git add docs/ etl/scripts/ etl/src/ orchestrator.sh api/ && git co
 Todo `download_*.py` criado e testado DEVE ser registrado no orchestrator
 **antes de ser considerado concluído**. Rolim não aceita rodar downloads diretamente
 pelo script — tudo passa pelo orchestrator. Sem registro = tarefa incompleta.
-
 Registrar em 4 lugares no `orchestrator.sh`:
 1. `LABEL_MAP[fonte]="LabelNeo4j"`
 2. `TIMEOUT_MAP[fonte]=600`
@@ -187,6 +207,9 @@ O único CHANGELOG oficial é: `docs/operacional/CHANGELOG.md`
 | Assumiu versão do MASTER | Sempre verificar com ls + sort -V |
 | Download incremental sem INCREMENTAL_SOURCES | Registrar em INCREMENTAL_SOURCES |
 | Rodou download direto pelo script | Sempre pelo orchestrator |
+| Copiou dados manualmente do navegador | Usar agent-browser |
+| Output longo foi para o contexto sem filtro | Prefixar com rtk |
 
 ---
+
 *Atualizar este arquivo se novas regras forem alinhadas com o Rolim*
